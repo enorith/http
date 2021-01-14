@@ -62,9 +62,6 @@ type InputSource interface {
 type RequestContract interface {
 	InputSource
 	Context() context.Context
-	Ended() <-chan struct{}
-	GetResponse() ResponseContract
-	End(resp ResponseContract)
 	Params() map[string][]byte
 	Param(key string) string
 	ParamInt64(key string) (int64, error)

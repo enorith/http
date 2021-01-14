@@ -6,7 +6,6 @@ import (
 	"github.com/buger/jsonparser"
 	. "github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
-	"runtime"
 	"strconv"
 )
 
@@ -37,9 +36,6 @@ func (p ParamUint64) Value() uint64 {
 type SimpleParamRequest struct {
 	params      map[string][]byte
 	paramsSlice [][]byte
-	resp 	    ResponseContract
-	done       	chan struct{}
-	ended       bool
 }
 
 func (shr *SimpleParamRequest) Params() map[string][]byte {
@@ -91,24 +87,6 @@ func (shr *SimpleParamRequest) SetParams(params map[string][]byte) {
 
 func (shr *SimpleParamRequest) SetParamsSlice(paramsSlice [][]byte) {
 	shr.paramsSlice = paramsSlice
-}
-
-
-func (shr *SimpleParamRequest) End(resp ResponseContract) {
-	if !shr.ended {
-		shr.resp = resp
-		shr.done <- struct{}{}
-		shr.ended = true
-		runtime.Goexit()
-	}
-}
-
-func (shr *SimpleParamRequest) Ended() <-chan struct{} {
-	return shr.done
-}
-
-func (shr *SimpleParamRequest) GetResponse() ResponseContract {
-	return shr.resp
 }
 
 func GetJsonValue(r RequestContract, key string) []byte {

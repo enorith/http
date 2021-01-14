@@ -203,6 +203,5 @@ func NewNetHttpRequest(origin *http.Request, w http.ResponseWriter) *NetHttpRequ
 	r.origin = origin
 	r.originWriter = w
 	r.signature = []byte{}
-	r.done = make(chan struct{})
 	return r
 }

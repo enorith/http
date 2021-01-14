@@ -6,6 +6,7 @@ import (
 	"github.com/enorith/container"
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
+	httpErrors "github.com/enorith/http/errors"
 	"github.com/enorith/http/validation"
 	"github.com/enorith/supports/byt"
 	"github.com/enorith/supports/reflection"
@@ -109,7 +110,10 @@ func (r RequestInjector) Injection(abs interface{}, value reflect.Value) (reflec
 
 		value.Elem().Field(r.requestIndex).Set(instanceReq)
 
-		r.parseStruct(ts, value, r.request, 1)
+		_, e := r.parseStruct(ts, value, r.request, 1)
+		if e != nil {
+			return value, e
+		}
 
 		return value, nil
 	} else if r.isParam(abs) {
@@ -172,7 +176,7 @@ func (r RequestInjector) isRequest(abs interface{}) bool {
 	return r.requestIndex > -1
 }
 
-func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.Value, request contracts.InputSource, offset int) reflect.Value {
+func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.Value, request contracts.InputSource, offset int) (reflect.Value, error) {
 
 	for i := offset; i < structType.NumField(); i++ {
 		f := structType.Field(i)
@@ -184,11 +188,14 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 				errs = append(errs, r.validator.PassesRules(request, attribute, rules)...)
 			}
 			if len(errs) > 0 {
-				r.request.End(content.HttpErrorResponse(errs[0], 422, 500, nil))
+				return reflect.Value{}, httpErrors.UnprocessableEntityError(errs[0])
 			}
 		}
 		if f.Type.Kind() == reflect.Struct && f.Anonymous {
-			value := r.parseStruct(f.Type, reflect.New(f.Type), request, 0)
+			value, e := r.parseStruct(f.Type, reflect.New(f.Type), request, 0)
+			if e != nil {
+				return reflect.Value{}, e
+			}
 			fieldValue.Set(value.Elem())
 		} else {
 			if input := f.Tag.Get("input"); input != "" {
@@ -197,13 +204,19 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 
 					errs := r.validator.Passes(request, input, rules)
 					if len(errs) > 0 {
-						r.request.End(content.HttpErrorResponse(errs[0], 422, 500, nil))
+						return reflect.Value{}, httpErrors.UnprocessableEntityError(errs[0])
 					}
 				}
 
-				r.parseField(f.Type, fieldValue, request.Get(input))
+				e := r.parseField(f.Type, fieldValue, request.Get(input))
+				if e != nil {
+					return reflect.Value{}, e
+				}
 			} else if param := f.Tag.Get("param"); param != "" {
-				r.parseField(f.Type, fieldValue, request.ParamBytes(param))
+				e := r.parseField(f.Type, fieldValue, request.ParamBytes(param))
+				if e != nil {
+					return reflect.Value{}, e
+				}
 			} else if file := f.Tag.Get("file"); file != "" {
 				if f.Type.String() == "contracts.UploadFile" {
 					uploadFile, e := request.File(file)
@@ -215,14 +228,14 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 		}
 	}
 
-	return newValue
+	return newValue, nil
 }
 
-func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value, data []byte) {
+func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value, data []byte) error {
 	v := field.Interface()
 	if _, ok := v.([]byte); ok {
 		field.SetBytes(data)
-		return
+		return nil
 	}
 
 	switch fieldType.Kind() {
@@ -251,10 +264,16 @@ func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value,
 		in, _ := byt.ToFloat64(data)
 		field.SetFloat(in)
 	case reflect.Struct:
-		in := r.parseStruct(fieldType, reflect.New(fieldType), jsonInput(data), 0)
+		in, e := r.parseStruct(fieldType, reflect.New(fieldType), jsonInput(data), 0)
+		if e != nil {
+			return e
+		}
 		field.Set(in.Elem())
 	case reflect.Ptr:
-		in := r.parseStruct(fieldType, reflect.New(fieldType), jsonInput(data), 0)
+		in, e := r.parseStruct(fieldType, reflect.New(fieldType), jsonInput(data), 0)
+		if e != nil {
+			return e
+		}
 		field.Set(in)
 	case reflect.Slice:
 		it := fieldType.Elem()
@@ -273,7 +292,7 @@ func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value,
 		field.Set(slice)
 	}
 
-	return
+	return nil
 }
 
 func init() {

@@ -182,6 +182,5 @@ func NewFastHttpRequest(origin *fasthttp.RequestCtx) *FastHttpRequest {
 	r := new(FastHttpRequest)
 	r.origin = origin
 	r.signature = []byte{}
-	r.done = make(chan struct{})
 	return r
 }

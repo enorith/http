@@ -16,11 +16,12 @@ type Server struct {
 func (s *Server) Serve(addr string, register RouterRegister) error {
 	register(s.k.Wrapper(), s.k)
 	var err error
-	log.Printf("Enorith(%s) served at [%s]", Version, addr)
 	if s.k.Handler == HandlerFastHttp {
+		log.Printf("enorith/%s (fasthttp) served at [%s]", Version, addr)
 		err = s.GetFastHttpServer(s.k).
 			ListenAndServe(addr)
 	} else if s.k.Handler == HandlerNetHttp {
+		log.Printf("enorith/%s (net/http) served at [%s]", Version, addr)
 		err = net.ListenAndServe(addr, s.k)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type ContainerRegister func() *container.Container
@@ -275,6 +276,8 @@ func NewWrapper(cr ContainerRegister) *Wrapper {
 
 			return rs
 		}(),
+		mu: &sync.RWMutex{},
+		cacheRoutes: make(map[string]*paramRoute),
 	}
 
 	return &Wrapper{r, nil, nil, cr, defaultRequestResolver{}}

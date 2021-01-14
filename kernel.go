@@ -82,6 +82,8 @@ func (k *Kernel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				resp.SetHeader("Connection", "keep-alive")
 			}
 
+			resp.SetHeader("Server", fmt.Sprintf("enorith/%s (net/http)", Version))
+
 			headers := resp.Headers()
 			if headers != nil {
 				for k, v := range headers {
@@ -123,6 +125,7 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 				ctx.Response.Header.Set(k, v)
 			}
 		}
+		ctx.Response.Header.Set("Server", fmt.Sprintf("enorith/%s (fasthttp)", Version))
 		if tp, ok := resp.(*content.TemplateResponse); ok {
 			temp := tp.Template()
 			temp.Execute(ctx, tp.TemplateData())
@@ -167,27 +170,35 @@ func (k *Kernel) SetErrorHandler(handler errors.ErrorHandler) {
 
 func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseContract) {
 	// End-able request
-	rc := make(chan contracts.ResponseContract)
+	//rc := make(chan contracts.ResponseContract)
+	//
+	//go func() {
+	//	defer func() {
+	//		if x := recover(); x != nil {
+	//			resp = k.errorHandler.HandleError(x, r)
+	//			r.End(resp)
+	//		}
+	//	}()
+	//	r.End(k.SendRequestToRouter(r))
+	//}()
+	//
+	//go func() {
+	//	select {
+	//	case <- r.Ended():
+	//		rc <- r.GetResponse()
+	//		return
+	//	}
+	//}()
+	//
+	//resp = <-rc
 
-	go func() {
-		defer func() {
-			if x := recover(); x != nil {
-				resp = k.errorHandler.HandleError(x, r)
-				r.End(resp)
-			}
-		}()
-		r.End(k.SendRequestToRouter(r))
-	}()
-
-	go func() {
-		select {
-		case <- r.Ended():
-			rc <- r.GetResponse()
-			return
+	defer func() {
+		if x := recover(); x != nil {
+			resp = k.errorHandler.HandleError(x, r)
 		}
 	}()
 
-	resp = <-rc
+	resp = k.SendRequestToRouter(r)
 
 	if t, ok := resp.(*content.ErrorResponse); ok {
 		resp = k.errorHandler.HandleError(t.E(), r)
@@ -248,12 +259,12 @@ func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runt
 	runtime.BindFunc(&content.Request{}, func(c *container.Container) reflect.Value {
 
 		return reflect.ValueOf(&content.Request{RequestContract: r})
-	}, false)
+	}, true)
 
 	runtime.BindFunc(content.Request{}, func(c *container.Container) reflect.Value {
 
 		return reflect.ValueOf(content.Request{RequestContract: r})
-	}, false)
+	}, true)
 
 	runtime.WithInjector(RequestInjector{runtime: runtime, request: r, validator: validation.DefaultValidator})
 }

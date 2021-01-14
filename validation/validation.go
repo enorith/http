@@ -88,7 +88,7 @@ func (v *Validator) Passes(req contracts.InputSource, attribute string, rules []
 
 func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rules []interface{}) (errors []string) {
 	input := req.GetValue(attribute)
-	for _, rl := range rules {
+	for i, rl := range rules {
 		if s, ok := rl.(string); ok {
 			ss := strings.Split(s, ":")
 			var args []string
@@ -100,7 +100,11 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 				inputRule := r(attribute, req, args...)
 				success, skip := inputRule.Passes(input)
 				if !success {
-					errors = append(errors, inputRule.Message())
+					message := inputRule.Message()
+					if len(message) < 1 {
+						message =  fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
+					}
+					errors = append(errors, message)
 				}
 
 				if skip {
@@ -114,7 +118,11 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 			}
 
 			if !success {
-				errors = append(errors, rr.Message())
+				message := rr.Message()
+				if len(message) < 1 {
+					message =  fmt.Sprintf("validation attribute [%s] error, rule [%d]", attribute, i)
+				}
+				errors = append(errors, message)
 			}
 		}
 	}
