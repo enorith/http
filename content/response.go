@@ -40,8 +40,9 @@ type Response struct {
 	handled    bool
 }
 
-func (r *Response) SetStatusCode(code int) {
+func (r *Response) SetStatusCode(code int) contracts.ResponseContract {
 	r.statusCode = code
+	return r
 }
 
 func (r *Response) Handled() bool {
@@ -182,7 +183,7 @@ func JsonResponse(data interface{}, code int, headers map[string]string) contrac
 		headers = map[string]string{}
 	}
 
-	headers["Content-Type"] = "application/json; charset=utf-8"
+	headers["Content-Type"] = ContentTypeJson
 
 	return NewResponse(j, headers, code)
 }
