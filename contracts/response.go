@@ -9,7 +9,7 @@ type ResponseContract interface {
 	Headers() map[string]string
 	SetHeader(key string, value string) ResponseContract
 	StatusCode() int
-	SetStatusCode(code int)
+	SetStatusCode(code int) ResponseContract
 	Handled() bool
 }
 
@@ -20,4 +20,8 @@ type TemplateResponseContract interface {
 
 type WithStatusCode interface {
 	StatusCode() int
+}
+
+type WithHeaders interface {
+	Headers() map[string]string
 }

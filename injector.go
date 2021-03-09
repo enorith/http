@@ -2,6 +2,10 @@ package http
 
 import (
 	"errors"
+	"reflect"
+	"strings"
+	"sync"
+
 	"github.com/buger/jsonparser"
 	"github.com/enorith/container"
 	"github.com/enorith/http/content"
@@ -10,9 +14,6 @@ import (
 	"github.com/enorith/http/validation"
 	"github.com/enorith/supports/byt"
 	"github.com/enorith/supports/reflection"
-	"reflect"
-	"strings"
-	"sync"
 )
 
 var cs cacheStruct
@@ -80,10 +81,10 @@ func (c *cacheStruct) set(abs interface{}, b bool) {
 
 //RequestInjector inject request object, with validation
 type RequestInjector struct {
-	runtime    *container.Container
-	request    contracts.RequestContract
-	validator  *validation.Validator
-	paramIndex int
+	runtime      *container.Container
+	request      contracts.RequestContract
+	validator    *validation.Validator
+	paramIndex   int
 	requestIndex int
 }
 
@@ -244,23 +245,13 @@ func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value,
 	case reflect.Bool:
 		in, _ := byt.ToBool(data)
 		field.SetBool(in)
-	case reflect.Int:
-		fallthrough
-	case reflect.Int32:
-		fallthrough
-	case reflect.Int64:
+	case reflect.Int, reflect.Int32, reflect.Int64:
 		in, _ := byt.ToInt64(data)
 		field.SetInt(in)
-	case reflect.Uint:
-		fallthrough
-	case reflect.Uint32:
-		fallthrough
-	case reflect.Uint64:
+	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		in, _ := byt.ToUint64(data)
 		field.SetUint(in)
-	case reflect.Float32:
-		fallthrough
-	case reflect.Float64:
+	case reflect.Float32, reflect.Float64:
 		in, _ := byt.ToFloat64(data)
 		field.SetFloat(in)
 	case reflect.Struct:
