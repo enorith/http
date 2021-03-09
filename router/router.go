@@ -84,6 +84,10 @@ func (rh *routesHolder) Middleware(middleware ...string) *routesHolder {
 }
 
 func (rh *routesHolder) Prefix(prefix string) *routesHolder {
+	if strings.Index(prefix, "/") != 0 {
+		prefix = "/" + prefix
+	}
+
 	for _, v := range rh.routes {
 		v.path = prefix + v.path
 	}
@@ -199,7 +203,7 @@ func (r *router) MatchBytes(request contracts.RequestContract) *paramRoute {
 	partialLength := len(bytesPartials)
 
 	for _, route := range r.routes[method] {
-		/// full match
+		/// static match
 		if bytes.Compare([]byte(route.path), pathBytes) == 0 {
 			return route
 		} else if len(route.partials) == partialLength {

@@ -151,6 +151,11 @@ func (k *Kernel) SetMiddleware(ms []RequestMiddleware) {
 	k.middleware = ms
 }
 
+func (k *Kernel) Use(m RequestMiddleware) *Kernel {
+	k.middleware = append(k.middleware, m)
+	return k
+}
+
 func (k *Kernel) KeepAlive(b ...bool) *Kernel {
 	if len(b) > 0 {
 		k.tcpKeepAlive = b[0]
@@ -169,29 +174,6 @@ func (k *Kernel) SetErrorHandler(handler errors.ErrorHandler) {
 }
 
 func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseContract) {
-	// End-able request
-	//rc := make(chan contracts.ResponseContract)
-	//
-	//go func() {
-	//	defer func() {
-	//		if x := recover(); x != nil {
-	//			resp = k.errorHandler.HandleError(x, r)
-	//			r.End(resp)
-	//		}
-	//	}()
-	//	r.End(k.SendRequestToRouter(r))
-	//}()
-	//
-	//go func() {
-	//	select {
-	//	case <- r.Ended():
-	//		rc <- r.GetResponse()
-	//		return
-	//	}
-	//}()
-	//
-	//resp = <-rc
-
 	defer func() {
 		if x := recover(); x != nil {
 			resp = k.errorHandler.HandleError(x, r)
@@ -245,6 +227,8 @@ func NewKernel(cr router.ContainerRegister, debug bool) *Kernel {
 		Debug: debug,
 	}
 	k.RequestCurrency = DefaultConcurrency
+	k.middleware = []RequestMiddleware{}
+	k.middlewareGroup = make(map[string][]RequestMiddleware)
 	return k
 }
 

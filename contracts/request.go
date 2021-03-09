@@ -2,11 +2,12 @@ package contracts
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/buger/jsonparser"
 	"github.com/enorith/supports/byt"
+	jsoniter "github.com/json-iterator/go"
 	"mime/multipart"
 )
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type JsonHandler func(value InputValue, dataType jsonparser.ValueType)
 

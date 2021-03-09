@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
-	"encoding/json"
 	"errors"
 	. "github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"

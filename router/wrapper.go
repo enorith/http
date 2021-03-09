@@ -1,7 +1,7 @@
 package router
 
 import (
-	"encoding/json"
+	stdJson "encoding/json"
 	"errors"
 	"fmt"
 	"github.com/enorith/container"
@@ -15,13 +15,13 @@ import (
 	"sync"
 )
 
-type ContainerRegister func() *container.Container
+type ContainerRegister func(request contracts.RequestContract) *container.Container
 
 var MethodSplitter = "@"
 
 type CRUDHandler interface {
-	Index(request contracts.RequestContract) json.Marshaler
-	Show(request contracts.RequestContract, id int64) json.Marshaler
+	Index(request contracts.RequestContract) stdJson.Marshaler
+	Show(request contracts.RequestContract, id int64) stdJson.Marshaler
 	Store(request contracts.RequestContract) contracts.ResponseContract
 	Update(request contracts.RequestContract, id int64) contracts.ResponseContract
 	Delete(request contracts.RequestContract, id int64) contracts.ResponseContract
@@ -234,7 +234,7 @@ func NewRouteHandlerFromHttp(h http.Handler) RouteHandler {
 }
 
 func (w *Wrapper) getContainer(req contracts.RequestContract) *container.Container {
-	c := w.containerRegister()
+	c := w.containerRegister(req)
 	w.requestResolver.ResolveRequest(req, c)
 
 	return c
@@ -252,7 +252,7 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 		return t
 	} else if t, ok := data.(contracts.ResponseContract); ok { // return Response
 		return t
-	} else if t, ok := data.(json.Marshaler); ok { // return json or error
+	} else if t, ok := data.(stdJson.Marshaler); ok { // return json or error
 		j, err := t.MarshalJSON()
 		if err != nil {
 			return content.ErrResponse(exception.NewExceptionFromError(err, 500), 500, nil)

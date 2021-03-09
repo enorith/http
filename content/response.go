@@ -1,12 +1,12 @@
 package content
 
 import (
-	"encoding/json"
 	"html/template"
 	"net/http"
 
 	"github.com/enorith/exception"
 	"github.com/enorith/http/contracts"
+	stdJson "encoding/json"
 )
 
 var (
@@ -167,7 +167,7 @@ func JsonResponse(data interface{}, code int, headers map[string]string) contrac
 	var err error
 	if b, ok := data.([]byte); ok {
 		j = b
-	} else if t, ok := data.(json.Marshaler); ok {
+	} else if t, ok := data.(stdJson.Marshaler); ok {
 		j, err = t.MarshalJSON()
 		if err != nil {
 			return ErrResponseFromError(err, 500, nil)

@@ -6,8 +6,11 @@ import (
 	"github.com/buger/jsonparser"
 	. "github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
+	jsoniter "github.com/json-iterator/go"
 	"strconv"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Param string
 

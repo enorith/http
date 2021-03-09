@@ -1,6 +1,7 @@
 package middlware
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/enorith/cache"
 	gocache "github.com/enorith/cache"
@@ -38,7 +39,7 @@ func (t *ThrottleRequests) Handle(r contracts.RequestContract, next http.PipeHan
 }
 
 func (t *ThrottleRequests) requestSignature(r contracts.RequestContract) string {
-	return fmt.Sprintf("request:hit:%x", r.GetSignature())
+	return fmt.Sprintf("request:hit:%s", hex.EncodeToString(r.GetSignature()))
 }
 
 func (t *ThrottleRequests) responseTooManyAttempts(r contracts.RequestContract) contracts.ResponseContract {

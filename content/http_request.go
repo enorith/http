@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
-	"encoding/json"
 	"errors"
 	. "github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
@@ -121,6 +120,11 @@ func (n *NetHttpRequest) GetValue(key... string) InputValue {
 /// GetClientIp get client ip
 /// reverse proxy need implement
 func (n *NetHttpRequest) GetClientIp() string {
+	ip, _, _ := net.SplitHostPort(n.origin.RemoteAddr)
+
+	return ip
+}
+func (n *NetHttpRequest) RemoteAddr() string {
 	ip, _, _ := net.SplitHostPort(n.origin.RemoteAddr)
 
 	return ip
