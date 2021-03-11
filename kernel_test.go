@@ -1,12 +1,13 @@
 package http_test
 
 import (
+	"testing"
+
 	"github.com/enorith/container"
 	"github.com/enorith/http"
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/tests"
-	"testing"
 )
 
 var k *http.Kernel
