@@ -2,11 +2,13 @@ package contracts
 
 import (
 	"context"
+	"mime/multipart"
+
 	"github.com/buger/jsonparser"
 	"github.com/enorith/supports/byt"
 	jsoniter "github.com/json-iterator/go"
-	"mime/multipart"
 )
+
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type JsonHandler func(value InputValue, dataType jsonparser.ValueType)
@@ -92,6 +94,7 @@ type RequestContract interface {
 	SetHeaderString(key, value string) RequestContract
 	Authorization() []byte
 	BearerToken() ([]byte, error)
+	String() string
 }
 
 type UploadFile interface {

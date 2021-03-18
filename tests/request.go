@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 )
@@ -110,4 +111,8 @@ func (f FakeRequest) Authorization() []byte {
 
 func (f FakeRequest) BearerToken() ([]byte, error) {
 	panic("implement me")
+}
+
+func (f FakeRequest) String() string {
+	return "fake request"
 }

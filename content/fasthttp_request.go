@@ -5,11 +5,13 @@ import (
 	"context"
 	"crypto/sha1"
 	"errors"
+	"fmt"
+	"strconv"
+
 	. "github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
 	b "github.com/enorith/supports/byt"
 	"github.com/valyala/fasthttp"
-	"strconv"
 )
 
 type FastHttpRequest struct {
@@ -100,7 +102,7 @@ func (r *FastHttpRequest) GetString(key string) string {
 	return string(r.Get(key))
 }
 
-func (r *FastHttpRequest) GetValue(key... string) InputValue {
+func (r *FastHttpRequest) GetValue(key ...string) InputValue {
 	if len(key) > 0 {
 		return r.Get(key[0])
 	}
@@ -175,6 +177,10 @@ func (r *FastHttpRequest) BearerToken() ([]byte, error) {
 	}
 
 	return bytes.TrimSpace(auth[6:]), nil
+}
+
+func (r *FastHttpRequest) String() string {
+	return fmt.Sprintf("%s%s", r.origin.Request.Header.String(), r.GetContent())
 }
 
 func NewFastHttpRequest(origin *fasthttp.RequestCtx) *FastHttpRequest {

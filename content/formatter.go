@@ -2,6 +2,7 @@ package content
 
 import (
 	"fmt"
+
 	"github.com/enorith/exception"
 	"github.com/enorith/http/contracts"
 )
@@ -39,6 +40,7 @@ func HtmlErrorResponseFormatter(err exception.Exception, code int, debug bool, h
         <meta charset="utf-8" />
         <meta name="robots" content="noindex,nofollow" />
         <style>%s</style>
+		<title>Error</title>
     </head>
     <body>
         <div id="content">
@@ -65,6 +67,9 @@ func HtmlErrorResponseFormatter(err exception.Exception, code int, debug bool, h
 	width: 80%;
 	margin-left: auto;
 	margin-right: auto;
+}
+.trace li {
+	padding: 6px 0;
 }
 #content {
 	width: 80%;

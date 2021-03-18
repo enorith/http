@@ -5,12 +5,15 @@ import (
 	"context"
 	"crypto/sha1"
 	"errors"
-	. "github.com/enorith/http/contracts"
-	"github.com/enorith/supports/byt"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
+
+	. "github.com/enorith/http/contracts"
+	"github.com/enorith/supports/byt"
 )
 
 type NetHttpRequest struct {
@@ -68,6 +71,7 @@ func (n *NetHttpRequest) Get(key string) []byte {
 	if q != "" {
 		return []byte(q)
 	}
+	n.origin.ParseForm()
 	formData := n.origin.Form.Get(key)
 
 	if formData != "" {
@@ -109,7 +113,7 @@ func (n *NetHttpRequest) GetString(key string) string {
 	return string(n.Get(key))
 }
 
-func (n *NetHttpRequest) GetValue(key... string) InputValue {
+func (n *NetHttpRequest) GetValue(key ...string) InputValue {
 	if len(key) > 0 {
 		return n.Get(key[0])
 	}
@@ -202,10 +206,25 @@ func (n *NetHttpRequest) BearerToken() ([]byte, error) {
 	return bytes.TrimSpace(auth[6:]), nil
 }
 
+func (n *NetHttpRequest) String() string {
+	firstLine := fmt.Sprintf("%s %s %s", n.GetMethod(), n.origin.URL, n.origin.Proto)
+
+	return fmt.Sprintf("%s\r\n%s\r\n\r\n%s", firstLine,
+		NetHeaderToString(n.origin.Header), n.GetContent())
+}
+
 func NewNetHttpRequest(origin *http.Request, w http.ResponseWriter) *NetHttpRequest {
 	r := new(NetHttpRequest)
 	r.origin = origin
 	r.originWriter = w
 	r.signature = []byte{}
 	return r
+}
+
+func NetHeaderToString(h http.Header) string {
+	var lines []string
+	for k, vs := range h {
+		lines = append(lines, fmt.Sprintf("%s: %s", k, strings.Join(vs, ";")))
+	}
+	return strings.Join(lines, "\r\n")
 }
