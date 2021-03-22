@@ -116,3 +116,11 @@ func (f FakeRequest) BearerToken() ([]byte, error) {
 func (f FakeRequest) String() string {
 	return "fake request"
 }
+
+func NewRequest(method, path string) *FakeRequest {
+	return &FakeRequest{
+		SimpleParamRequest: content.SimpleParamRequest{},
+		Path:               path,
+		Method:             method,
+	}
+}

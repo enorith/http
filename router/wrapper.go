@@ -276,8 +276,10 @@ func NewWrapper(cr ContainerRegister) *Wrapper {
 
 			return rs
 		}(),
-		mu: &sync.RWMutex{},
-		cacheRoutes: make(map[string]*paramRoute),
+		trees: &methodTrees{
+			mu:    &sync.RWMutex{},
+			nodes: make(map[string]*node),
+		},
 	}
 
 	return &Wrapper{r, nil, nil, cr, defaultRequestResolver{}}
