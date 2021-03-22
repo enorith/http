@@ -58,6 +58,10 @@ func BenchmarkRouter_MatchParamInjection(b *testing.B) {
 	}
 }
 
+func TestJoinPaths(t *testing.T) {
+	t.Log(router2.JoinPaths("", "/", "bar", "/foo"))
+}
+
 func NewRequest(method, path string) *tests.FakeRequest {
 	return &tests.FakeRequest{
 		SimpleParamRequest: content.SimpleParamRequest{},

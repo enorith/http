@@ -118,22 +118,20 @@ func (w *Wrapper) Delete(path string, handler interface{}) *routesHolder {
 	return w.RegisterAction(DELETE, path, handler)
 }
 
-func (w *Wrapper) Group(g GroupHandler, prefix string, middleware ...string) {
-	tr := NewWrapper(w.containerRegister)
+func (w *Wrapper) Group(g GroupHandler, prefix string, middleware ...string) *routesHolder {
+	tr := NewWrapper(w.containerRegister, prefix)
 	g(tr)
 
-	if strings.Index(prefix, "/") != 0 {
-		prefix = "/" + prefix
-	}
-
+	var rs []*paramRoute
 	for method, routes := range tr.routes {
 		for _, p := range routes {
-			p.path = prefix + p.path
-			p.partials = resolvePartials(p.path)
-			p.middleware = middleware
-			w.routes[method] = append(w.routes[method], p)
+			route := w.addRoute(method, p.path, p.handler)
+			route.SetMiddleware(middleware)
+			rs = append(rs, route)
 		}
 	}
+
+	return &routesHolder{routes: rs}
 }
 
 //CRUD register simple crud routes
@@ -266,7 +264,11 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 	}
 }
 
-func NewWrapper(cr ContainerRegister) *Wrapper {
+func NewWrapper(cr ContainerRegister, ps ...string) *Wrapper {
+	var prefix string
+	if len(ps) > 0 {
+		prefix = ps[0]
+	}
 	r := &router{
 		routes: func() map[string][]*paramRoute {
 			rs := map[string][]*paramRoute{}
@@ -280,9 +282,10 @@ func NewWrapper(cr ContainerRegister) *Wrapper {
 			mu:    &sync.RWMutex{},
 			nodes: make(map[string]*node),
 		},
+		prefix: prefix,
 	}
 
-	return &Wrapper{r, nil, nil, cr, defaultRequestResolver{}}
+	return &Wrapper{router: r, containerRegister: cr, requestResolver: defaultRequestResolver{}}
 }
 
 type defaultRequestResolver struct {

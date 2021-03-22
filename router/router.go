@@ -83,17 +83,6 @@ func (rh *routesHolder) Middleware(middleware ...string) *routesHolder {
 	return rh
 }
 
-func (rh *routesHolder) Prefix(prefix string) *routesHolder {
-	if strings.Index(prefix, "/") != 0 {
-		prefix = "/" + prefix
-	}
-
-	for _, v := range rh.routes {
-		v.path = prefix + v.path
-	}
-	return rh
-}
-
 type methodTrees struct {
 	mu    *sync.RWMutex
 	nodes map[string]*node
@@ -116,6 +105,7 @@ func (mt *methodTrees) set(method string, n *node) {
 type router struct {
 	routes map[string][]*paramRoute
 	trees  *methodTrees
+	prefix string
 }
 
 func (r *router) Routes() map[string][]*paramRoute {
@@ -158,6 +148,7 @@ func (r *router) Register(method int, path string, handler RouteHandler) *routes
 }
 
 func (r *router) addRoute(method string, path string, handler RouteHandler) *paramRoute {
+	path = JoinPaths(r.prefix, path)
 	route := &paramRoute{
 		path:    path,
 		handler: handler,
@@ -320,4 +311,24 @@ func (r *router) normalPath(path []byte) []byte {
 
 func (r *router) hashRequestRoute(rq contracts.RequestContract) string {
 	return string(rq.GetUri())
+}
+
+func AppendSlash(path string) string {
+	if strings.Index(path, "/") != 0 {
+		path = "/" + path
+	}
+
+	return path
+}
+
+func JoinPaths(paths ...string) string {
+	var ps []string
+	for _, path := range paths {
+		prefix := strings.TrimPrefix(path, "/")
+		if prefix != "" {
+			ps = append(ps, prefix)
+		}
+	}
+
+	return AppendSlash(strings.Join(ps, "/"))
 }
