@@ -3,6 +3,11 @@ package http
 import (
 	"bytes"
 	"fmt"
+	"log"
+	"net/http"
+	"reflect"
+	"time"
+
 	"github.com/enorith/container"
 	"github.com/enorith/exception"
 	"github.com/enorith/http/content"
@@ -11,10 +16,6 @@ import (
 	"github.com/enorith/http/router"
 	"github.com/enorith/http/validation"
 	"github.com/valyala/fasthttp"
-	"log"
-	"net/http"
-	"reflect"
-	"time"
 )
 
 const Version = "v0.0.1"
@@ -233,7 +234,6 @@ func NewKernel(cr router.ContainerRegister, debug bool) *Kernel {
 }
 
 type KernelRequestResolver struct {
-
 }
 
 func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime *container.Container) {

@@ -3,18 +3,19 @@ package http
 import (
 	"context"
 	"fmt"
-	"github.com/enorith/http/router"
-	"github.com/valyala/fasthttp"
 	"log"
 	net "net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/enorith/http/router"
+	"github.com/valyala/fasthttp"
 )
 
 var (
-	ReadTimeout = time.Second * 30
+	ReadTimeout  = time.Second * 30
 	WriteTimeout = time.Second * 30
 )
 
