@@ -2,10 +2,11 @@ package validation
 
 import (
 	"fmt"
-	"github.com/enorith/http/contracts"
-	"github.com/enorith/http/validation/rule"
 	"strings"
 	"sync"
+
+	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/validation/rule"
 )
 
 type WithValidation interface {
@@ -14,7 +15,7 @@ type WithValidation interface {
 
 var DefaultValidator *Validator
 
-type ValidateError map[string]string
+type ValidateError map[string][]string
 
 func (v ValidateError) StatusCode() int {
 	return 422
@@ -24,7 +25,9 @@ func (v ValidateError) Error() string {
 	var first string
 
 	for _, s := range v {
-		first = s
+		if len(s) > 0 {
+			first = s[0]
+		}
 		break
 	}
 
@@ -72,7 +75,7 @@ func (v *Validator) Passes(req contracts.InputSource, attribute string, rules []
 				message := inputRule.Message()
 
 				if len(message) < 1 {
-					message =  fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
+					message = fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
 				}
 
 				errors = append(errors, message)
@@ -102,7 +105,7 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 				if !success {
 					message := inputRule.Message()
 					if len(message) < 1 {
-						message =  fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
+						message = fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
 					}
 					errors = append(errors, message)
 				}
@@ -120,7 +123,7 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 			if !success {
 				message := rr.Message()
 				if len(message) < 1 {
-					message =  fmt.Sprintf("validation attribute [%s] error, rule [%d]", attribute, i)
+					message = fmt.Sprintf("validation attribute [%s] error, rule [%d]", attribute, i)
 				}
 				errors = append(errors, message)
 			}
@@ -132,7 +135,7 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 
 func init() {
 	DefaultValidator = &Validator{registers: map[string]RuleRegister{}, mu: sync.RWMutex{}}
-	Register("required", func(attribute string,r contracts.InputSource, args ...string) rule.Rule {
+	Register("required", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
 		return rule.Required{Attribute: attribute}
 	})
 }

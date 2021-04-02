@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -24,6 +25,10 @@ var (
 	typeParamString,
 	typeParamInt,
 	typeParamUnit reflect.Type
+)
+
+var (
+	uploadFileType = reflect.TypeOf((*contracts.UploadFile)(nil)).Elem()
 )
 
 type jsonInputHandler func(j jsonInput)
@@ -219,11 +224,13 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 					return reflect.Value{}, e
 				}
 			} else if file := f.Tag.Get("file"); file != "" {
-				if f.Type.String() == "contracts.UploadFile" {
+				fmt.Println(f.Type, uploadFileType)
+				if f.Type == uploadFileType {
 					uploadFile, e := request.File(file)
-					if e == nil {
-						fieldValue.Set(reflect.ValueOf(uploadFile))
+					if e != nil {
+						return reflect.Value{}, e
 					}
+					fieldValue.Set(reflect.ValueOf(uploadFile))
 				}
 			}
 		}

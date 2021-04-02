@@ -238,7 +238,8 @@ type KernelRequestResolver struct {
 
 func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime *container.Container) {
 	runtime.RegisterSingleton(r)
-	runtime.Singleton("contracts.RequestContract", r)
+
+	runtime.Singleton((*contracts.RequestContract)(nil), r)
 
 	runtime.BindFunc(&content.Request{}, func(c *container.Container) reflect.Value {
 

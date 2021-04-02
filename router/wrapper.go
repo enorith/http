@@ -4,15 +4,16 @@ import (
 	stdJson "encoding/json"
 	"errors"
 	"fmt"
-	"github.com/enorith/container"
-	"github.com/enorith/exception"
-	"github.com/enorith/http/content"
-	"github.com/enorith/http/contracts"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/enorith/container"
+	"github.com/enorith/exception"
+	"github.com/enorith/http/content"
+	"github.com/enorith/http/contracts"
 )
 
 type ContainerRegister func(request contracts.RequestContract) *container.Container
