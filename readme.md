@@ -24,7 +24,7 @@ type FooRequest struct {
 
 func main() {
 	s := http.NewServer(func() *container.Container {
-		return container.New()
+		return container.New() // runtime IoC container
 	}, true)
 	
 	e := s.Serve(":10800", func(ro *router.Wrapper, k *http.Kernel) {
@@ -33,7 +33,7 @@ func main() {
 
 			return content.TextResponse("ok", 200)
 		})
-		
+
 		// request injection
 		ro.Get("/foo", func(r FooRequest) contracts.ResponseContract {
 
