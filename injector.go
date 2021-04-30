@@ -205,30 +205,33 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 			fieldValue.Set(value.Elem())
 		} else {
 			if input := f.Tag.Get("input"); input != "" {
-				if rule := f.Tag.Get("validate"); rule != "" {
-					rules := strings.Split(rule, "|")
-
-					errs := r.validator.Passes(request, input, rules)
-					if len(errs) > 0 {
-						return reflect.Value{}, httpErrors.UnprocessableEntityError(errs[0])
-					}
+				e := r.passValidate(f.Tag, request, input)
+				if e != nil {
+					return reflect.Value{}, e
 				}
-
-				e := r.parseField(f.Type, fieldValue, request.Get(input))
+				e = r.parseField(f.Type, fieldValue, request.Get(input))
 				if e != nil {
 					return reflect.Value{}, e
 				}
 			} else if param := f.Tag.Get("param"); param != "" {
-				e := r.parseField(f.Type, fieldValue, request.ParamBytes(param))
+				e := r.passValidate(f.Tag, request, param)
+				if e != nil {
+					return reflect.Value{}, e
+				}
+				e = r.parseField(f.Type, fieldValue, request.ParamBytes(param))
 				if e != nil {
 					return reflect.Value{}, e
 				}
 			} else if file := f.Tag.Get("file"); file != "" {
-				fmt.Println(f.Type, uploadFileType)
+				e := r.passValidate(f.Tag, request, file)
+				if e != nil {
+					return reflect.Value{}, e
+				}
 				if f.Type == uploadFileType {
 					uploadFile, e := request.File(file)
 					if e != nil {
-						return reflect.Value{}, e
+						return reflect.Value{}, httpErrors.UnprocessableEntityError(
+							fmt.Sprintf("attribute [%s] must be a file", file))
 					}
 					fieldValue.Set(reflect.ValueOf(uploadFile))
 				}
@@ -237,6 +240,17 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 	}
 
 	return newValue, nil
+}
+func (r RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) error {
+	if rule := tag.Get("validate"); rule != "" {
+		rules := strings.Split(rule, "|")
+
+		errs := r.validator.Passes(request, attribute, rules)
+		if len(errs) > 0 {
+			return httpErrors.UnprocessableEntityError(errs[0])
+		}
+	}
+	return nil
 }
 
 func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value, data []byte) error {

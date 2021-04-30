@@ -2,7 +2,7 @@
 
 ## Basic usage
 
-```go
+```golang
 package main
 
 import (
@@ -12,12 +12,14 @@ import (
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/router"
 	"log"
+	"fmt"
 )
 
 type FooRequest struct {
 	content.Request
     // input injection and validation
 	Foo string `input:"foo" validate:"required"`
+	File contracts.UploadFile `file:"file"`
 }
 
 func main() {
@@ -31,10 +33,17 @@ func main() {
 
 			return content.TextResponse("ok", 200)
 		})
-
+		
+		// request injection
 		ro.Get("/foo", func(r FooRequest) contracts.ResponseContract {
 
 			return content.TextResponse("input foo: " + r.Foo, 200)
+		})
+
+		// param injection
+		ro.Get("/:id", func(id content.ParamUint64) string {
+
+			return fmt.Sprintf("input id: %d", id)
 		})
 	})
 

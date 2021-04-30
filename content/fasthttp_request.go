@@ -76,6 +76,11 @@ func (r *FastHttpRequest) Get(key string) []byte {
 		return post.Peek(key)
 	}
 
+	form := r.origin.FormValue(key)
+	if len(form) > 0 {
+		return form
+	}
+
 	return GetJsonValue(r, key)
 }
 

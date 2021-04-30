@@ -84,6 +84,8 @@ func (v *Validator) Passes(req contracts.InputSource, attribute string, rules []
 			if skip {
 				break
 			}
+		} else {
+			return []string{fmt.Sprintf("unregisterd validation rule [%s]", ss[0])}
 		}
 	}
 	return
@@ -136,6 +138,14 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 func init() {
 	DefaultValidator = &Validator{registers: map[string]RuleRegister{}, mu: sync.RWMutex{}}
 	Register("required", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
-		return rule.Required{Attribute: attribute}
+		return rule.Required{Attribute: attribute, Source: r}
+	})
+
+	Register("file", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
+		return rule.FileInput{Attribute: attribute, Source: r}
+	})
+
+	Register("nullable", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
+		return rule.NullableInput{}
 	})
 }

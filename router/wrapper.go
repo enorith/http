@@ -121,6 +121,7 @@ func (w *Wrapper) Delete(path string, handler interface{}) *routesHolder {
 
 func (w *Wrapper) Group(g GroupHandler, prefix string, middleware ...string) *routesHolder {
 	tr := NewWrapper(w.containerRegister, prefix)
+	tr.requestResolver = w.requestResolver
 	g(tr)
 
 	var rs []*paramRoute
