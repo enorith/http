@@ -4,9 +4,10 @@ import (
 	"html/template"
 	"net/http"
 
+	stdJson "encoding/json"
+
 	"github.com/enorith/exception"
 	"github.com/enorith/http/contracts"
-	stdJson "encoding/json"
 )
 
 var (
@@ -104,6 +105,13 @@ type File struct {
 
 func (f *File) Path() string {
 	return f.path
+}
+
+func NewFileResponse(path string) *File {
+	return &File{
+		NewResponse(nil, nil, 200),
+		path,
+	}
 }
 
 func NewResponse(content []byte, headers map[string]string, code int) *Response {
