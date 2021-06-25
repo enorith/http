@@ -7,8 +7,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/enorith/container v0.0.3 h1:jc5MpFqj+HJeoOQWgilRC36+vNig91a6Cq5LX0l0PQ0=
 github.com/enorith/container v0.0.3/go.mod h1:qGItKkY9KIkkYkIUyywuaCYa8pfo40HyT66XGwzlNQE=
-github.com/enorith/exception v0.0.0-20210304143950-27d041329f7f h1:F0IkoQQHimwGtfi+udfcy9Ym/YoobPR+8PXbnDwNZZg=
-github.com/enorith/exception v0.0.0-20210304143950-27d041329f7f/go.mod h1:OiHWfkZXqUU7JwAMFRRM6abSwjBZuX0P4kLLxndKTzk=
+github.com/enorith/exception v0.0.1 h1:q4VGJHYtzG8aj6mrwRf73qWAOFIps4GV1KSeVgBrixY=
+github.com/enorith/exception v0.0.1/go.mod h1:OiHWfkZXqUU7JwAMFRRM6abSwjBZuX0P4kLLxndKTzk=
 github.com/enorith/language v0.0.0-20210311034453-b97f7834a24e h1:Ea3RC9iiBk25Ylnb78eqU3hCZcD3mr0IjyWUbbJNgfU=
 github.com/enorith/language v0.0.0-20210311034453-b97f7834a24e/go.mod h1:lR6+6amExYujU7vx/8JEddpv2xlCf2sUXciyg8JKJ7g=
 github.com/enorith/supports v0.0.5 h1:iE5FvjRt5LNADaR/EWESGoKEpPanxW3rFH9eCWTtoAM=
