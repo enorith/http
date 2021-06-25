@@ -234,17 +234,17 @@ func NewKernel(cr router.ContainerRegister, debug bool) *Kernel {
 type KernelRequestResolver struct {
 }
 
-func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime *container.Container) {
+func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime container.Interface) {
 	runtime.RegisterSingleton(r)
 
 	runtime.Singleton((*contracts.RequestContract)(nil), r)
 
-	runtime.BindFunc(&content.Request{}, func(c *container.Container) reflect.Value {
+	runtime.BindFunc(&content.Request{}, func(c container.Interface) reflect.Value {
 
 		return reflect.ValueOf(&content.Request{RequestContract: r})
 	}, true)
 
-	runtime.BindFunc(content.Request{}, func(c *container.Container) reflect.Value {
+	runtime.BindFunc(content.Request{}, func(c container.Interface) reflect.Value {
 
 		return reflect.ValueOf(content.Request{RequestContract: r})
 	}, true)

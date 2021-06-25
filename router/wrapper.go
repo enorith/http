@@ -16,7 +16,7 @@ import (
 	"github.com/enorith/http/contracts"
 )
 
-type ContainerRegister func(request contracts.RequestContract) *container.Container
+type ContainerRegister func(request contracts.RequestContract) container.Interface
 
 var MethodSplitter = "@"
 
@@ -38,7 +38,7 @@ type ResultHandler func(val []reflect.Value, err error) contracts.ResponseContra
 type GroupHandler func(r *Wrapper)
 
 type RequestResolver interface {
-	ResolveRequest(r contracts.RequestContract, container *container.Container)
+	ResolveRequest(r contracts.RequestContract, container container.Interface)
 }
 
 var DefaultResultHandler = func(val []reflect.Value, err error) contracts.ResponseContract {
@@ -233,7 +233,7 @@ func NewRouteHandlerFromHttp(h http.Handler) RouteHandler {
 	}
 }
 
-func (w *Wrapper) getContainer(req contracts.RequestContract) *container.Container {
+func (w *Wrapper) getContainer(req contracts.RequestContract) container.Interface {
 	c := w.containerRegister(req)
 	w.requestResolver.ResolveRequest(req, c)
 
@@ -293,7 +293,7 @@ func NewWrapper(cr ContainerRegister, ps ...string) *Wrapper {
 type defaultRequestResolver struct {
 }
 
-func (d defaultRequestResolver) ResolveRequest(r contracts.RequestContract, runtime *container.Container) {
+func (d defaultRequestResolver) ResolveRequest(r contracts.RequestContract, runtime container.Interface) {
 	runtime.RegisterSingleton(r)
 	runtime.Singleton("contracts.RequestContract", r)
 }

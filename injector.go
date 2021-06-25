@@ -86,7 +86,7 @@ func (c *cacheStruct) set(abs interface{}, b bool) {
 
 //RequestInjector inject request object, with validation
 type RequestInjector struct {
-	runtime      *container.Container
+	runtime      container.Interface
 	request      contracts.RequestContract
 	validator    *validation.Validator
 	paramIndex   int
