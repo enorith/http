@@ -2,7 +2,6 @@ package rule
 
 import (
 	"github.com/enorith/http/contracts"
-	"github.com/enorith/language"
 )
 
 type Required struct {
@@ -22,12 +21,4 @@ func (r Required) Passes(input contracts.InputValue) (success bool, skipAll bool
 	}
 
 	return false, false
-}
-
-func (r Required) Message() string {
-	s, _ := language.T("validation", "required", map[string]string{
-		"attribute": r.Attribute,
-	})
-
-	return s
 }

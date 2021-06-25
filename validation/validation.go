@@ -7,6 +7,7 @@ import (
 
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/validation/rule"
+	"github.com/enorith/language"
 )
 
 type WithValidation interface {
@@ -71,13 +72,8 @@ func (v *Validator) Passes(req contracts.InputSource, attribute string, rules []
 		if exist {
 			inputRule := r(attribute, req, args...)
 			success, skip := inputRule.Passes(input)
+			message, success, skip := v.passRule(inputRule, input, attribute, ss[0])
 			if !success {
-				message := inputRule.Message()
-
-				if len(message) < 1 {
-					message = fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
-				}
-
 				errors = append(errors, message)
 			}
 
@@ -103,12 +99,8 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 			r, exist := v.GetRule(ss[0])
 			if exist {
 				inputRule := r(attribute, req, args...)
-				success, skip := inputRule.Passes(input)
+				message, success, skip := v.passRule(inputRule, input, attribute, ss[0])
 				if !success {
-					message := inputRule.Message()
-					if len(message) < 1 {
-						message = fmt.Sprintf("validation attribute [%s] error, rule [%s]", attribute, ss[0])
-					}
 					errors = append(errors, message)
 				}
 
@@ -117,22 +109,46 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 				}
 			}
 		} else if rr, ok := rl.(rule.Rule); ok {
-			success, skip := rr.Passes(input)
+			message, success, skip := v.passRule(rr, input, attribute, fmt.Sprintf("rule %d", i))
 			if skip {
 				break
 			}
 
 			if !success {
-				message := rr.Message()
-				if len(message) < 1 {
-					message = fmt.Sprintf("validation attribute [%s] error, rule [%d]", attribute, i)
-				}
 				errors = append(errors, message)
 			}
 		}
 	}
 
 	return
+}
+
+func (v *Validator) passRule(r rule.Rule, input contracts.InputValue, attribute, name string) (string, bool, bool) {
+	success, skip := r.Passes(input)
+
+	var message string
+	if !success {
+
+		if msg, ok := r.(rule.Messager); ok {
+			message = msg.Message()
+		}
+		if len(message) < 1 {
+			var err error
+			attr, _ := language.T("validation", "attributes."+attribute)
+			if attr == "" {
+				attr = attribute
+			}
+
+			message, err = language.T("validation", name, map[string]string{
+				"attribute": attr,
+			})
+			if err != nil {
+				message = fmt.Sprintf("validation attribute [%s] error, %s", attribute, name)
+			}
+		}
+	}
+
+	return message, success, skip
 }
 
 func init() {

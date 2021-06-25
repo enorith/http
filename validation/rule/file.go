@@ -2,7 +2,6 @@ package rule
 
 import (
 	"github.com/enorith/http/contracts"
-	"github.com/enorith/language"
 )
 
 type FileInput struct {
@@ -18,11 +17,4 @@ func (f FileInput) Passes(input contracts.InputValue) (success bool, skipAll boo
 	}
 
 	return false, false
-}
-func (f FileInput) Message() string {
-	s, _ := language.T("validation", "file", map[string]string{
-		"attribute": f.Attribute,
-	})
-
-	return s
 }

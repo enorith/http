@@ -12,6 +12,3 @@ func (ni NullableInput) Passes(input contracts.InputValue) (success bool, skipAl
 
 	return true, false
 }
-func (ni NullableInput) Message() string {
-	return ""
-}
