@@ -17,28 +17,25 @@ type Trace struct {
 }
 
 type ErrorData struct {
-	Code    int
-	File    string
-	Line    int
-	Message string
-	Debug   bool
-	Fatal   bool
-	Traces  []Trace
+	Code      int
+	File      string
+	Line      int
+	Message   string
+	Debug     bool
+	Recovered bool
+	Fatal     bool
+	Traces    []Trace
 }
 
 type ErrorHandler interface {
-	HandleError(e interface{}, r contracts.RequestContract) contracts.ResponseContract
+	HandleError(e interface{}, r contracts.RequestContract, recovered bool) contracts.ResponseContract
 }
 
 type StandardErrorHandler struct {
 	Debug bool
 }
 
-func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestContract) contracts.ResponseContract {
-	return h.BaseHandle(e, r)
-}
-
-func (h *StandardErrorHandler) BaseHandle(e interface{}, r contracts.RequestContract) contracts.ResponseContract {
+func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestContract, recovered bool) contracts.ResponseContract {
 	var ex exception.Exception
 	var code = 500
 	var headers map[string]string = nil
@@ -60,7 +57,7 @@ func (h *StandardErrorHandler) BaseHandle(e interface{}, r contracts.RequestCont
 	}
 
 	if r.ExceptsJson() {
-		return JsonErrorResponseFormatter(ex, code, h.Debug, headers)
+		return JsonErrorResponseFormatter(ex, code, h.Debug, recovered, headers)
 	} else {
 		//tmp := fmt.Sprintf("%s/errors/%d.html", h.App.Structure().BasePath, code)
 		//fmt.Println(tmp)
@@ -74,12 +71,12 @@ func (h *StandardErrorHandler) BaseHandle(e interface{}, r contracts.RequestCont
 
 		temp, _ := template.ParseFS(assets.FS, te)
 
-		return content.TempResponse(temp, code, toErrorData(code, ex, h.Debug))
+		return content.TempResponse(temp, code, toErrorData(code, ex, h.Debug, recovered))
 		// return content.HtmlErrorResponseFormatter(ex, code, h.Debug, headers)
 	}
 }
 
-func JsonErrorResponseFormatter(err exception.Exception, code int, debug bool, headers map[string]string) contracts.ResponseContract {
+func JsonErrorResponseFormatter(err exception.Exception, code int, debug, recovered bool, headers map[string]string) contracts.ResponseContract {
 
 	data := map[string]interface{}{
 		"code":    code,
@@ -89,6 +86,7 @@ func JsonErrorResponseFormatter(err exception.Exception, code int, debug bool, h
 	if debug {
 		data["file"] = err.File()
 		data["line"] = err.Line()
+		data["recoverd"] = recovered
 		data["traces"] = func() []string {
 			var traces []string
 			for k, v := range err.Traces() {
@@ -102,7 +100,7 @@ func JsonErrorResponseFormatter(err exception.Exception, code int, debug bool, h
 	return content.JsonResponse(data, code, headers)
 }
 
-func toErrorData(code int, err exception.Exception, debug bool) (data ErrorData) {
+func toErrorData(code int, err exception.Exception, debug, recoverd bool) (data ErrorData) {
 
 	data.Message = err.Error()
 	data.File = err.File()
@@ -114,6 +112,7 @@ func toErrorData(code int, err exception.Exception, debug bool) (data ErrorData)
 			Line: t.Line(),
 		})
 	}
+	data.Recovered = recoverd
 	data.Fatal = code >= 500
 	return
 }

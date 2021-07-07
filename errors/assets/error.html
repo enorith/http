@@ -23,7 +23,7 @@
     <div id="app" class="container-xl">
         <div class="card">
             <div class="card-header {{if .Fatal}}color-red{{end}}">
-                <h5 class="card-title">[{{.Code}}] {{.Message}}</h5>
+                <h5 class="card-title">[{{.Code}}] {{.Message}} {{if .Recovered}}(recovered){{end}}</h5>
                 <span class="card-subtitle mb-2">{{.File}}</h6>
             </div>
             {{if .Debug}}

@@ -179,18 +179,18 @@ func (k *Kernel) SetErrorHandler(handler errors.ErrorHandler) {
 func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseContract) {
 	defer func() {
 		if x := recover(); x != nil {
-			resp = k.errorHandler.HandleError(x, r)
+			resp = k.errorHandler.HandleError(x, r, true)
 		}
 	}()
 
 	resp = k.SendRequestToRouter(r)
 
 	if t, ok := resp.(*content.ErrorResponse); ok {
-		resp = k.errorHandler.HandleError(t.E(), r)
+		resp = k.errorHandler.HandleError(t.E(), r, false)
 	}
 
 	if t, ok := resp.(exception.Exception); ok {
-		resp = k.errorHandler.HandleError(t, r)
+		resp = k.errorHandler.HandleError(t, r, false)
 	}
 
 	return resp
