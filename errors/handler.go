@@ -1,10 +1,30 @@
 package errors
 
 import (
+	"fmt"
+	"html/template"
+
 	"github.com/enorith/exception"
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/errors/assets"
+	"github.com/enorith/supports/file"
 )
+
+type Trace struct {
+	File string
+	Line int
+}
+
+type ErrorData struct {
+	Code    int
+	File    string
+	Line    int
+	Message string
+	Debug   bool
+	Fatal   bool
+	Traces  []Trace
+}
 
 type ErrorHandler interface {
 	HandleError(e interface{}, r contracts.RequestContract) contracts.ResponseContract
@@ -40,13 +60,60 @@ func (h *StandardErrorHandler) BaseHandle(e interface{}, r contracts.RequestCont
 	}
 
 	if r.ExceptsJson() {
-		return content.JsonErrorResponseFormatter(ex, code, h.Debug, headers)
+		return JsonErrorResponseFormatter(ex, code, h.Debug, headers)
 	} else {
 		//tmp := fmt.Sprintf("%s/errors/%d.html", h.App.Structure().BasePath, code)
 		//fmt.Println(tmp)
 		//if e, _ := file.PathExists(tmp); e {
 		//	return content.FileResponse(tmp, 200, ex)
 		//}
-		return content.HtmlErrorResponseFormatter(ex, code, h.Debug, headers)
+		te := fmt.Sprintf("%d.html", code)
+		if !file.PathExistsFS(assets.FS, te) {
+			te = "error.html"
+		}
+
+		temp, _ := template.ParseFS(assets.FS, te)
+
+		return content.TempResponse(temp, code, toErrorData(code, ex, h.Debug))
+		// return content.HtmlErrorResponseFormatter(ex, code, h.Debug, headers)
 	}
+}
+
+func JsonErrorResponseFormatter(err exception.Exception, code int, debug bool, headers map[string]string) contracts.ResponseContract {
+
+	data := map[string]interface{}{
+		"code":    code,
+		"message": err.Error(),
+	}
+
+	if debug {
+		data["file"] = err.File()
+		data["line"] = err.Line()
+		data["traces"] = func() []string {
+			var traces []string
+			for k, v := range err.Traces() {
+				frame := fmt.Sprintf("#%d %s [%d]: %s", k+1, v.File(), v.Line(), v.Name())
+				traces = append(traces, frame)
+			}
+			return traces
+		}()
+	}
+
+	return content.JsonResponse(data, code, headers)
+}
+
+func toErrorData(code int, err exception.Exception, debug bool) (data ErrorData) {
+
+	data.Message = err.Error()
+	data.File = err.File()
+	data.Code = code
+	data.Debug = debug
+	for _, t := range err.Traces() {
+		data.Traces = append(data.Traces, Trace{
+			File: t.File(),
+			Line: t.Line(),
+		})
+	}
+	data.Fatal = code >= 500
+	return
 }

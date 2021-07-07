@@ -71,7 +71,7 @@ func NewRequest(method, path string) *tests.FakeRequest {
 }
 
 func init() {
-	router = router2.NewWrapper(func(contracts.RequestContract) *container.Container {
+	router = router2.NewWrapper(func(contracts.RequestContract) container.Interface {
 
 		return container.New()
 	})

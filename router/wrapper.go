@@ -241,8 +241,9 @@ func (w *Wrapper) getContainer(req contracts.RequestContract) container.Interfac
 }
 
 func convertResponse(data interface{}) contracts.ResponseContract {
-
-	if t, ok := data.(error); ok { // return error
+	if t, ok := data.(contracts.ResponseContract); ok { // return response
+		return t
+	} else if t, ok := data.(error); ok { // return error
 		return content.ErrResponseFromError(t, 500, nil)
 	} else if t, ok := data.(string); ok { // return string
 		return content.TextResponse(t, 200)

@@ -36,7 +36,7 @@ func TestKernel_Handle(t *testing.T) {
 }
 
 func init() {
-	k = http.NewKernel(func(request contracts.RequestContract) *container.Container {
+	k = http.NewKernel(func(request contracts.RequestContract) container.Interface {
 
 		return container.New()
 	}, false)

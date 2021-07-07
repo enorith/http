@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"reflect"
@@ -18,7 +19,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const Version = "v0.0.1"
+const Version = "v0.0.4"
 
 type handlerType int
 
@@ -84,22 +85,23 @@ func (k *Kernel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			resp.SetHeader("Server", fmt.Sprintf("enorith/%s (net/http)", Version))
 
 			headers := resp.Headers()
-			if headers != nil {
-				for k, v := range headers {
-					w.Header().Set(k, v)
-				}
+			for k, v := range headers {
+				w.Header().Set(k, v)
 			}
 			if !resp.Handled() {
 				// call after set headers, before write body
 				w.WriteHeader(resp.StatusCode())
 			}
-			body := resp.Content()
-			if tp, ok := resp.(*content.TemplateResponse); ok {
+
+			if tp, ok := resp.(contracts.TemplateResponseContract); ok {
 				temp := tp.Template()
 				temp.Execute(w, tp.TemplateData())
-			} else if tp, ok := resp.(*content.File); ok {
-				http.ServeFile(w, r, tp.Path())
-			} else if body != nil {
+			} else if fp, ok := resp.(*content.File); ok {
+				http.ServeFile(w, r, fp.Path())
+			} else if wp, ok := resp.(io.WriterTo); ok {
+				wp.WriteTo(w)
+			} else {
+				body := resp.Content()
 				w.Write(body)
 			}
 			code = resp.StatusCode()
@@ -125,11 +127,13 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 			}
 		}
 		ctx.Response.Header.Set("Server", fmt.Sprintf("enorith/%s (fasthttp)", Version))
-		if tp, ok := resp.(*content.TemplateResponse); ok {
+		if tp, ok := resp.(contracts.TemplateResponseContract); ok {
 			temp := tp.Template()
 			temp.Execute(ctx, tp.TemplateData())
-		} else if tp, ok := resp.(*content.File); ok {
-			fasthttp.ServeFile(ctx, tp.Path())
+		} else if fp, ok := resp.(*content.File); ok {
+			fasthttp.ServeFile(ctx, fp.Path())
+		} else if wp, ok := resp.(io.WriterTo); ok {
+			wp.WriteTo(ctx)
 		} else {
 			body := resp.Content()
 			buf := bytes.NewBuffer(body)

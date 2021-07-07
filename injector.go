@@ -194,7 +194,7 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 				errs = append(errs, r.validator.PassesRules(request, attribute, rules)...)
 			}
 			if len(errs) > 0 {
-				return reflect.Value{}, httpErrors.UnprocessableEntityError(errs[0])
+				return reflect.Value{}, httpErrors.UnprocessableEntity(errs[0])
 			}
 		}
 		if f.Type.Kind() == reflect.Struct && f.Anonymous {
@@ -230,7 +230,7 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 				if f.Type == uploadFileType {
 					uploadFile, e := request.File(file)
 					if e != nil {
-						return reflect.Value{}, httpErrors.UnprocessableEntityError(
+						return reflect.Value{}, httpErrors.UnprocessableEntity(
 							fmt.Sprintf("attribute [%s] must be a file", file))
 					}
 					fieldValue.Set(reflect.ValueOf(uploadFile))
@@ -247,7 +247,7 @@ func (r RequestInjector) passValidate(tag reflect.StructTag, request contracts.I
 
 		errs := r.validator.Passes(request, attribute, rules)
 		if len(errs) > 0 {
-			return httpErrors.UnprocessableEntityError(errs[0])
+			return httpErrors.UnprocessableEntity(errs[0])
 		}
 	}
 	return nil
