@@ -59,11 +59,6 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 	if r.ExceptsJson() {
 		return JsonErrorResponseFormatter(ex, code, h.Debug, recovered, headers)
 	} else {
-		//tmp := fmt.Sprintf("%s/errors/%d.html", h.App.Structure().BasePath, code)
-		//fmt.Println(tmp)
-		//if e, _ := file.PathExists(tmp); e {
-		//	return content.FileResponse(tmp, 200, ex)
-		//}
 		te := fmt.Sprintf("%d.html", code)
 		if !file.PathExistsFS(assets.FS, te) {
 			te = "error.html"
@@ -72,7 +67,6 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 		temp, _ := template.ParseFS(assets.FS, te)
 
 		return content.TempResponse(temp, code, toErrorData(code, ex, h.Debug, recovered))
-		// return content.HtmlErrorResponseFormatter(ex, code, h.Debug, headers)
 	}
 }
 

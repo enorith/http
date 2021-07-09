@@ -5,7 +5,6 @@ import (
 
 	"github.com/enorith/container"
 	"github.com/enorith/http"
-	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/tests"
 )
@@ -17,22 +16,14 @@ func BenchmarkKernel_Handle(b *testing.B) {
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		k.Handle(&tests.FakeRequest{
-			SimpleParamRequest: content.SimpleParamRequest{},
-			Path:               "/hello",
-			Method:             "GET",
-		})
+		k.Handle(tests.NewRequest("GET", "/hello"))
 	}
 }
 
 func TestKernel_Handle(t *testing.T) {
-	resp := k.Handle(&tests.FakeRequest{
-		SimpleParamRequest: content.SimpleParamRequest{},
-		Path:               "/hello",
-		Method:             "GET",
-	})
+	resp := k.Handle(tests.NewRequest("GET", "/hello"))
 
-	t.Log("handle result", resp.StatusCode())
+	t.Log("handle result", resp.StatusCode(), resp.Content())
 }
 
 func init() {
@@ -41,7 +32,7 @@ func init() {
 		return container.New()
 	}, false)
 
-	k.Wrapper().HandleGet("/hello", func(r contracts.RequestContract) contracts.ResponseContract {
-		return content.TextResponse("ok", 200)
+	k.Wrapper().Get("/hello", func() []byte {
+		return []byte("ok")
 	})
 }

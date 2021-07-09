@@ -4,6 +4,7 @@ import (
 	stdJson "encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -63,9 +64,15 @@ var DefaultResultHandler = func(val []reflect.Value, err error) contracts.Respon
 	return convertResponse(data)
 }
 
-var invalidHandler RouteHandler = func(r contracts.RequestContract) contracts.ResponseContract {
-	return content.ErrResponseFromError(fmt.Errorf("invalid route handler if [%s] %s",
-		r.GetMethod(), r.GetPathBytes()), 500, nil)
+var ResponseFallbacker = func(data interface{}) contracts.ResponseContract {
+	return content.JsonResponse(data, 200, nil)
+}
+
+var invalidHandler func(e error) RouteHandler = func(e error) RouteHandler {
+	return func(r contracts.RequestContract) contracts.ResponseContract {
+		return content.ErrResponseFromError(fmt.Errorf("invalid route handler if [%s] %s: %s",
+			r.GetMethod(), r.GetPathBytes(), e), 500, nil)
+	}
 }
 
 type Wrapper struct {
@@ -93,7 +100,7 @@ func (w *Wrapper) BindController(name string, controller interface{}) {
 func (w *Wrapper) RegisterAction(method int, path string, handler interface{}) *routesHolder {
 	routeHandler, e := w.wrap(handler)
 	if e != nil {
-		routeHandler = invalidHandler
+		routeHandler = invalidHandler(e)
 	}
 
 	return w.Register(method, path, routeHandler)
@@ -195,7 +202,7 @@ func (w *Wrapper) wrap(handler interface{}) (RouteHandler, error) {
 		name, method := w.parseController(t)
 		controller, exists := w.controllers[name]
 		if !exists {
-			panic(fmt.Sprintf("panic: router: controller [%s] not registered", name))
+			return nil, fmt.Errorf("router controller [%s] not registered", name)
 		}
 		return func(req contracts.RequestContract) contracts.ResponseContract {
 			runtime := w.getContainer(req)
@@ -209,7 +216,8 @@ func (w *Wrapper) wrap(handler interface{}) (RouteHandler, error) {
 			return w.handleResult(val, err)
 		}, nil
 	}
-	panic(fmt.Sprintf("panic: router handler expect string or func, %s giving", reflect.TypeOf(handler).Kind()))
+
+	return nil, fmt.Errorf("router handler expect string or func, %s giving", reflect.TypeOf(handler).Kind())
 }
 
 func (w *Wrapper) handleResult(val []reflect.Value, err error) contracts.ResponseContract {
@@ -243,6 +251,8 @@ func (w *Wrapper) getContainer(req contracts.RequestContract) container.Interfac
 func convertResponse(data interface{}) contracts.ResponseContract {
 	if t, ok := data.(contracts.ResponseContract); ok { // return response
 		return t
+	} else if t, ok := data.(*template.Template); ok { // return Response
+		return content.TempResponse(t, 200, nil)
 	} else if t, ok := data.(error); ok { // return error
 		return content.ErrResponseFromError(t, 500, nil)
 	} else if t, ok := data.(string); ok { // return string
@@ -263,7 +273,7 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 		return content.TextResponse(t.String(), 200)
 	} else {
 		// fallback to json
-		return content.JsonResponse(data, 200, nil)
+		return ResponseFallbacker(data)
 	}
 }
 
