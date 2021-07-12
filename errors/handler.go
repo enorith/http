@@ -8,6 +8,7 @@ import (
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/errors/assets"
+	"github.com/enorith/http/view"
 	"github.com/enorith/supports/file"
 )
 
@@ -59,6 +60,11 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 	if r.ExceptsJson() {
 		return JsonErrorResponseFormatter(ex, code, h.Debug, recovered, headers)
 	} else {
+		errorData := toErrorData(code, ex, h.Debug, recovered)
+		if v, e := view.View(fmt.Sprintf("errors.%d", code), code, errorData); e == nil {
+			return v
+		}
+
 		te := fmt.Sprintf("%d.html", code)
 		if !file.PathExistsFS(assets.FS, te) {
 			te = "error.html"
@@ -66,7 +72,7 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 
 		temp, _ := template.ParseFS(assets.FS, te)
 
-		return content.TempResponse(temp, code, toErrorData(code, ex, h.Debug, recovered))
+		return content.TempResponse(temp, code, errorData)
 	}
 }
 
