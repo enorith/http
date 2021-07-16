@@ -93,7 +93,7 @@ type RequestInjector struct {
 	requestIndex int
 }
 
-func (r RequestInjector) Injection(abs interface{}, value reflect.Value) (reflect.Value, error) {
+func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (reflect.Value, error) {
 	var e error
 	defer func() {
 		if x := recover(); x != nil {
@@ -158,7 +158,7 @@ func (r RequestInjector) Injection(abs interface{}, value reflect.Value) (reflec
 	return value, e
 }
 
-func (r RequestInjector) When(abs interface{}) bool {
+func (r *RequestInjector) When(abs interface{}) bool {
 	ok, e := cs.get(abs)
 	if e {
 		return ok
@@ -171,18 +171,18 @@ func (r RequestInjector) When(abs interface{}) bool {
 	return is
 }
 
-func (r RequestInjector) isParam(abs interface{}) bool {
+func (r *RequestInjector) isParam(abs interface{}) bool {
 	ts := reflection.StructType(abs)
 
 	return ts == typeParamInt || ts == typeParamString || ts == typeParamInt64 || ts == typeParamUnit
 }
 
-func (r RequestInjector) isRequest(abs interface{}) bool {
+func (r *RequestInjector) isRequest(abs interface{}) bool {
 	r.requestIndex = reflection.SubStructOf(abs, typeRequest)
 	return r.requestIndex > -1
 }
 
-func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.Value, request contracts.InputSource, offset int) (reflect.Value, error) {
+func (r *RequestInjector) parseStruct(structType reflect.Type, newValue reflect.Value, request contracts.InputSource, offset int) (reflect.Value, error) {
 
 	for i := offset; i < structType.NumField(); i++ {
 		f := structType.Field(i)
@@ -241,7 +241,7 @@ func (r RequestInjector) parseStruct(structType reflect.Type, newValue reflect.V
 
 	return newValue, nil
 }
-func (r RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) error {
+func (r *RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) error {
 	if rule := tag.Get("validate"); rule != "" {
 		rules := strings.Split(rule, "|")
 
@@ -253,7 +253,7 @@ func (r RequestInjector) passValidate(tag reflect.StructTag, request contracts.I
 	return nil
 }
 
-func (r RequestInjector) parseField(fieldType reflect.Type, field reflect.Value, data []byte) error {
+func (r *RequestInjector) parseField(fieldType reflect.Type, field reflect.Value, data []byte) error {
 	v := field.Interface()
 	if _, ok := v.([]byte); ok {
 		field.SetBytes(data)
