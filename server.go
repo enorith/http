@@ -19,7 +19,7 @@ var (
 	WriteTimeout = time.Second * 30
 )
 
-type RouterRegister func(ro *router.Wrapper, k *Kernel)
+type RouterRegister func(rw *router.Wrapper, k *Kernel)
 
 type Server struct {
 	k *Kernel

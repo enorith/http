@@ -25,3 +25,8 @@ type WithStatusCode interface {
 type WithHeaders interface {
 	Headers() map[string]string
 }
+
+type FileServer interface {
+	Path() string
+	Prefix() string
+}

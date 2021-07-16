@@ -143,6 +143,12 @@ func (w *Wrapper) Group(g GroupHandler, prefix string, middleware ...string) *ro
 	return &routesHolder{routes: rs}
 }
 
+func (w *Wrapper) FastHttpFileServer(path, root string, stripSlashes int) *routesHolder {
+	return w.HandleGet(path, func(r contracts.RequestContract) contracts.ResponseContract {
+		return content.NewFastHttpFileServer(root, stripSlashes)
+	})
+}
+
 //CRUD register simple crud routes
 func (w *Wrapper) CRUD(path string, handler CRUDHandler, middleware ...string) {
 	w.Group(func(r *Wrapper) {

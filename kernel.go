@@ -115,6 +115,11 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 	k.handleFunc(func() (request contracts.RequestContract, code int) {
 		request = content.NewFastHttpRequest(ctx)
 		resp := k.Handle(request)
+		if fs, ok := resp.(*content.FastHttpFileServer); ok {
+			h := GetFsHandler(fs.Root(), fs.StripSlashes())
+			h(ctx)
+			return
+		}
 
 		if k.tcpKeepAlive {
 			resp.SetHeader("Connection", "keep-alive")
@@ -241,7 +246,7 @@ type KernelRequestResolver struct {
 func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime container.Interface) {
 	runtime.RegisterSingleton(r)
 
-	runtime.Singleton((*contracts.RequestContract)(nil), r)
+	runtime.Singleton(reflect.TypeOf((*contracts.RequestContract)(nil)).Elem(), r)
 
 	runtime.BindFunc(&content.Request{}, func(c container.Interface) reflect.Value {
 
