@@ -53,6 +53,8 @@ func main() {
 }
 ```
 
-# TODO
+## TODO
 
-[] Get client ip behand proxy
+- [ ] Get client ip behand proxy
+- [ ] Validation (imcomplate)
+- [ ] Logging
