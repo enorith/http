@@ -1,5 +1,7 @@
 package errors
 
+import "net/http"
+
 type UnprocessableEntity string
 
 func (u UnprocessableEntity) StatusCode() int {
@@ -48,4 +50,14 @@ func (nf NotFound) Error() string {
 
 func (nf NotFound) StatusCode() int {
 	return 404
+}
+
+type Code int
+
+func (c Code) Error() string {
+	return http.StatusText(int(c))
+}
+
+func (c Code) StatusCode() int {
+	return int(c)
 }

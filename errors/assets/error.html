@@ -1,40 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whoops!</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 </head>
 <style>
-#app {
-    margin-top: 2rem;
-}
-.color-red {
-    color: white;
-    background-color: rgb(233, 108, 104);
-}
-.color-red.card-subtitle {
-    color: rgb(226, 226, 226);
-}
+    @media (prefers-color-scheme: dark) {
+        body {
+            background-color: rgb(26, 32, 44);
+            color: rgb(180, 180, 180)
+        }
+
+        .card {
+            background-color: transparent;
+            border: 1px solid rgb(233, 108, 104);
+        }
+
+        .list-group-item {
+            background-color: transparent;
+            color: rgb(180, 180, 180);
+            border-bottom: 1px solid rgb(180, 180, 180);
+        }
+
+        .card-header {
+            border-bottom: 1px solid rgb(233, 108, 104);
+        }
+    }
 </style>
+<style>
+    #app {
+        margin-top: 2rem;
+    }
+
+    .color-red {
+        color: white;
+        background-color: rgb(233, 108, 104);
+    }
+
+    .color-red.card-subtitle {
+        color: rgb(226, 226, 226);
+    }
+
+    .color-yellow {
+        background-color: rgb(198, 199, 147);
+        color: black;
+    }
+</style>
+
 <body>
     <div id="app" class="container-xl">
         <div class="card">
-            <div class="card-header {{if .Fatal}}color-red{{end}}">
+            <div class="card-header {{if .Fatal}}color-red{{else}}color-yellow{{end}}">
                 <h5 class="card-title">[{{.Code}}] {{.Message}} {{if .Recovered}}(recovered){{end}}</h5>
                 <span class="card-subtitle mb-2">{{.File}}</h6>
             </div>
             {{if .Debug}}
             <ul class="list-group list-group-flush">
                 {{range .Traces}}
-                    <li class="list-group-item">{{.File}} ({{.Line}})</li>
+                <li class="list-group-item">{{.File}} ({{.Line}})</li>
                 {{end}}
             </ul>
             {{end}}
         </div>
     </div>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+    integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
+    crossorigin="anonymous"></script>
+
 </html>
