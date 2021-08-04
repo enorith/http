@@ -56,5 +56,5 @@ func main() {
 ## TODO
 
 - [ ] Get client ip behand proxy
-- [ ] Validation (imcomplate)
+- [ ] Validation (incomplete)
 - [ ] Logging

@@ -3,7 +3,6 @@ package errors
 import (
 	"fmt"
 	"html/template"
-	"io/fs"
 
 	"github.com/enorith/exception"
 	"github.com/enorith/http/content"
@@ -72,10 +71,6 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 		if !file.PathExistsFS(assets.FS, te) {
 			te = "error.html"
 		}
-
-		b, _ := fs.ReadFile(assets.FS, "common.html")
-
-		errorData.Style = string(b)
 
 		temp, _ := template.ParseFS(assets.FS, te)
 
