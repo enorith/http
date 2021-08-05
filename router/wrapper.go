@@ -259,28 +259,39 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 		return t
 	} else if t, ok := data.(*template.Template); ok { // return Response
 		return content.TempResponse(t, 200, nil)
-	} else if t, ok := data.(error); ok { // return error
-		return content.ErrResponseFromError(t, 500, nil)
+	}
+
+	var resp contracts.ResponseContract
+
+	if t, ok := data.(error); ok { // return error
+		resp = content.ErrResponseFromError(t, 500, nil)
 	} else if t, ok := data.(string); ok { // return string
-		return content.TextResponse(t, 200)
+		resp = content.TextResponse(t, 200)
 	} else if t, ok := data.([]byte); ok { // return []byte
-		return content.NewResponse(t, map[string]string{}, 200)
-	} else if t, ok := data.(*content.ErrorResponse); ok { // return ErrorResponse
-		return t
-	} else if t, ok := data.(contracts.ResponseContract); ok { // return Response
-		return t
+		resp = content.NewResponse(t, map[string]string{}, 200)
 	} else if t, ok := data.(stdJson.Marshaler); ok { // return json or error
 		j, err := t.MarshalJSON()
 		if err != nil {
 			return content.ErrResponse(exception.NewExceptionFromError(err, 500), 500, nil)
 		}
-		return content.NewResponse(j, content.JsonHeader(), 200)
+		resp = content.NewResponse(j, content.JsonHeader(), 200)
 	} else if t, ok := data.(fmt.Stringer); ok { // return string
-		return content.TextResponse(t.String(), 200)
+		resp = content.TextResponse(t.String(), 200)
 	} else {
 		// fallback to json
-		return ResponseFallbacker(data)
+		resp = ResponseFallbacker(data)
 	}
+
+	if c, ok := data.(contracts.WithStatusCode); ok {
+		resp.SetStatusCode(c.StatusCode())
+	}
+
+	if h, ok := data.(contracts.WithHeaders); ok {
+		// potential race condition
+		resp.SetHeaders(h.Headers())
+	}
+
+	return resp
 }
 
 func NewWrapper(cr ContainerRegister, ps ...string) *Wrapper {

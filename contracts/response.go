@@ -8,6 +8,7 @@ type ResponseContract interface {
 	Content() []byte
 	Headers() map[string]string
 	SetHeader(key string, value string) ResponseContract
+	SetHeaders(headers map[string]string) ResponseContract
 	StatusCode() int
 	SetStatusCode(code int) ResponseContract
 	Handled() bool

@@ -26,6 +26,24 @@ func TestKernel_Handle(t *testing.T) {
 	t.Log("handle result", resp.StatusCode(), resp.Content())
 }
 
+func TestKernel_HandleCustom(t *testing.T) {
+	resp := k.Handle(tests.NewRequest("GET", "/test"))
+
+	t.Log("handle result", resp.StatusCode(), string(resp.Content()), resp.Headers())
+}
+
+type CustomResp string
+
+func (c CustomResp) StatusCode() int {
+	return 422
+}
+
+func (c CustomResp) Headers() map[string]string {
+	return map[string]string{
+		"X-Client": string(c),
+	}
+}
+
 func init() {
 	k = http.NewKernel(func(request contracts.RequestContract) container.Interface {
 
@@ -34,5 +52,9 @@ func init() {
 
 	k.Wrapper().Get("/hello", func() []byte {
 		return []byte("ok")
+	})
+
+	k.Wrapper().Get("/test", func() CustomResp {
+		return CustomResp("test")
 	})
 }

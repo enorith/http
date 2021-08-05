@@ -55,6 +55,15 @@ func (r *Response) SetHeader(key string, value string) contracts.ResponseContrac
 	return r
 }
 
+func (r *Response) SetHeaders(headers map[string]string) contracts.ResponseContract {
+
+	for k, v := range headers {
+		r.headers[k] = v
+	}
+
+	return r
+}
+
 //Content response body
 func (r *Response) Content() []byte {
 	return r.content
@@ -229,4 +238,8 @@ func (m JsonMessage) MarshalJSON() ([]byte, error) {
 		"message": http.StatusText(code),
 		"code":    code,
 	})
+}
+
+func (m JsonMessage) StatusCode() int {
+	return int(m)
 }
