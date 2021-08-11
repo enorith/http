@@ -19,7 +19,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const Version = "v0.0.6"
+const Version = "v0.0.7"
 
 type handlerType int
 
@@ -248,14 +248,14 @@ func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runt
 
 	runtime.Singleton(reflect.TypeOf((*contracts.RequestContract)(nil)).Elem(), r)
 
-	runtime.BindFunc(&content.Request{}, func(c container.Interface) reflect.Value {
+	runtime.BindFunc(&content.Request{}, func(c container.Interface) (reflect.Value, error) {
 
-		return reflect.ValueOf(&content.Request{RequestContract: r})
+		return reflect.ValueOf(&content.Request{RequestContract: r}), nil
 	}, true)
 
-	runtime.BindFunc(content.Request{}, func(c container.Interface) reflect.Value {
+	runtime.BindFunc(content.Request{}, func(c container.Interface) (reflect.Value, error) {
 
-		return reflect.ValueOf(content.Request{RequestContract: r})
+		return reflect.ValueOf(content.Request{RequestContract: r}), nil
 	}, true)
 
 	runtime.WithInjector(&RequestInjector{runtime: runtime, request: r, validator: validation.DefaultValidator})
