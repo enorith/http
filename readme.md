@@ -1,6 +1,8 @@
 # Http component for [Enorith](https://github.com/enorith/framework)
 
-## Basic usage
+## Usage
+
+### Basic example
 
 ```golang
 package main
@@ -51,6 +53,81 @@ func main() {
 		log.Fatalf("serve error: %v", e)
 	}
 }
+```
+### Middleware
+
+```golang
+package foo
+
+import (
+	"github.com/enorith/http"
+	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/router"
+)
+
+type FooMiddleware struct {
+
+}
+
+func (FooMiddleware) Handle(r contracts.RequestContract, next http.PipeHandler) contracts.ResponseContract {
+	//TODO: before request handled
+
+	resp := next(r)
+
+	//TOD: after request handled
+	return resp
+}
+
+
+func Handler(ro *router.Wrapper, k *http.Kernel) {
+	k.SetMiddleware([]http.RequestMiddleware{ // global middleware
+		FooMiddleware{},
+	})
+
+	k.SetMiddlewareGroup(map[string][]http.RequestMiddleware{
+		"foo.mid": {FooMiddleware{}}
+	})
+
+	ro.Get("foo", fun() string { return "bar"}).Middleware("foo.mid")
+}
+```
+### With Container
+
+```golang
+package main
+
+import (
+	"reflect"
+
+	"github.com/enorith/container"
+	"github.com/enorith/http"
+	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/router"
+)
+
+type FooStruct struct {
+	Bar string
+}
+
+func main() {
+	srv := http.NewServer(func(request contracts.RequestContract) container.Interface {
+		con := container.New()
+
+		con.BindFunc(FooStruct{}, func(c container.Interface) (reflect.Value, error) { // bind instance
+			return reflect.ValueOf(FooStruct{Bar: "baz"}), nil
+		}, false)
+		return con
+	}, true)
+
+	srv.Serve(":8000", func(rw *router.Wrapper, k *http.Kernel) {
+
+
+		rw.Get("foo", func(fs FooStruct) string { // parameter injection
+			return fs.Bar
+		})
+	})
+}
+
 ```
 
 ## TODO

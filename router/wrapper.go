@@ -265,10 +265,12 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 
 	if t, ok := data.(error); ok { // return error
 		resp = content.ErrResponseFromError(t, 500, nil)
-	} else if t, ok := data.(string); ok { // return string
-		resp = content.TextResponse(t, 200)
 	} else if t, ok := data.([]byte); ok { // return []byte
 		resp = content.NewResponse(t, map[string]string{}, 200)
+	} else if t, ok := data.(string); ok { // return string
+		resp = content.TextResponse(t, 200)
+	} else if t, ok := data.(contracts.HTMLer); ok {
+		resp = content.NewResponse([]byte(t.HTML()), content.HtmlHeader(), 200)
 	} else if t, ok := data.(stdJson.Marshaler); ok { // return json or error
 		j, err := t.MarshalJSON()
 		if err != nil {
@@ -289,6 +291,11 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 	if h, ok := data.(contracts.WithHeaders); ok {
 		// potential race condition
 		resp.SetHeaders(h.Headers())
+	}
+
+	if ct, ok := data.(contracts.WithContentType); ok {
+		// potential race condition
+		resp.SetHeader("Content-Type", ct.ContentType())
 	}
 
 	return resp

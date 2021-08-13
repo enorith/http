@@ -23,6 +23,14 @@ type WithStatusCode interface {
 	StatusCode() int
 }
 
+type WithContentType interface {
+	ContentType() string
+}
+
+type HTMLer interface {
+	HTML() []byte
+}
+
 type WithHeaders interface {
 	Headers() map[string]string
 }
