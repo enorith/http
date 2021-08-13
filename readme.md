@@ -91,7 +91,7 @@ func Handler(ro *router.Wrapper, k *http.Kernel) {
 	ro.Get("foo", fun() string { return "bar"}).Middleware("foo.mid")
 }
 ```
-### With Container
+### Working with Container
 
 ```golang
 package main
