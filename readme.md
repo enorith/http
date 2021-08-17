@@ -109,6 +109,15 @@ type FooStruct struct {
 	Bar string
 }
 
+type FooService struct {
+	Foo FooStruct // construct injection
+}
+
+
+func (fs FooService) GetBar() string {
+	return fs.Foo.Bar
+}
+
 func main() {
 	srv := http.NewServer(func(request contracts.RequestContract) container.Interface {
 		con := container.New()
@@ -122,8 +131,8 @@ func main() {
 	srv.Serve(":8000", func(rw *router.Wrapper, k *http.Kernel) {
 
 
-		rw.Get("foo", func(fs FooStruct) string { // parameter injection
-			return fs.Bar
+		rw.Get("foo", func(fs FooService) string { // parameter injection
+			return fs.GetBar()
 		})
 	})
 }

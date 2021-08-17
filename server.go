@@ -17,6 +17,7 @@ import (
 var (
 	ReadTimeout  = time.Second * 30
 	WriteTimeout = time.Second * 30
+	IdleTimeout  = time.Second * 30
 )
 
 type RouterRegister func(rw *router.Wrapper, k *Kernel)
@@ -92,6 +93,7 @@ func (s *Server) GetFastHttpServer(kernel *Kernel) *fasthttp.Server {
 		MaxRequestBodySize: kernel.MaxRequestBodySize,
 		ReadTimeout:        ReadTimeout,
 		WriteTimeout:       WriteTimeout,
+		IdleTimeout:        IdleTimeout,
 	}
 }
 
