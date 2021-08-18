@@ -113,10 +113,11 @@ func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (refle
 		if err != nil {
 			return value, err
 		}
+		indVal := reflect.Indirect(value)
 
-		value.Elem().Field(r.requestIndex).Set(instanceReq)
+		indVal.Field(r.requestIndex).Set(instanceReq)
 
-		_, e := r.parseStruct(ts, value, r.request, 1)
+		e := r.unmarshal(indVal, r.request)
 		if e != nil {
 			return value, e
 		}
@@ -182,85 +183,67 @@ func (r *RequestInjector) isRequest(abs interface{}) bool {
 	return r.requestIndex > -1
 }
 
-func (r *RequestInjector) parseStruct(structType reflect.Type, newValue reflect.Value, request contracts.InputSource, offset int) (reflect.Value, error) {
-
-	for i := offset; i < structType.NumField(); i++ {
-		f := structType.Field(i)
-		fieldValue := newValue.Elem().Field(i)
-		if validated, ok := newValue.Interface().(validation.WithValidation); ok {
-			rules := validated.Rules()
-			var errs []string
-			for attribute, rules := range rules {
-				errs = append(errs, r.validator.PassesRules(request, attribute, rules)...)
-			}
-			if len(errs) > 0 {
-				return reflect.Value{}, httpErrors.UnprocessableEntity(errs[0])
-			}
+func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.InputSource) error {
+	typ := value.Type()
+	if validated, ok := value.Interface().(validation.WithValidation); ok {
+		rules := validated.Rules()
+		var errs []string
+		for attribute, rules := range rules {
+			errs = append(errs, r.validator.PassesRules(request, attribute, rules)...)
 		}
-		if f.Type.Kind() == reflect.Struct && f.Anonymous {
-			value, e := r.parseStruct(f.Type, reflect.New(f.Type), request, 0)
-			if e != nil {
-				return reflect.Value{}, e
-			}
-			fieldValue.Set(value.Elem())
-		} else {
-			if input := f.Tag.Get("input"); input != "" {
-				e := r.passValidate(f.Tag, request, input)
-				if e != nil {
-					return reflect.Value{}, e
-				}
-				e = r.parseField(f.Type, fieldValue, request.Get(input))
-				if e != nil {
-					return reflect.Value{}, e
-				}
-			} else if param := f.Tag.Get("param"); param != "" {
-				e := r.passValidate(f.Tag, request, param)
-				if e != nil {
-					return reflect.Value{}, e
-				}
-				e = r.parseField(f.Type, fieldValue, request.ParamBytes(param))
-				if e != nil {
-					return reflect.Value{}, e
-				}
-			} else if file := f.Tag.Get("file"); file != "" {
-				e := r.passValidate(f.Tag, request, file)
-				if e != nil {
-					return reflect.Value{}, e
-				}
-				if f.Type == uploadFileType {
-					uploadFile, e := request.File(file)
-					if e != nil {
-						return reflect.Value{}, httpErrors.UnprocessableEntity(
-							fmt.Sprintf("attribute [%s] must be a file", file))
-					}
-					fieldValue.Set(reflect.ValueOf(uploadFile))
-				}
-			}
-		}
-	}
-
-	return newValue, nil
-}
-func (r *RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) error {
-	if rule := tag.Get("validate"); rule != "" {
-		rules := strings.Split(rule, "|")
-
-		errs := r.validator.Passes(request, attribute, rules)
 		if len(errs) > 0 {
 			return httpErrors.UnprocessableEntity(errs[0])
+		}
+	}
+	for i := 0; i < value.NumField(); i++ {
+		f := value.Field(i)
+		ft := typ.Field(i)
+		if f.IsZero() {
+			if input := ft.Tag.Get("input"); input != "" {
+				e := r.passValidate(ft.Tag, request, input)
+				if e != nil {
+					return e
+				}
+				e = r.unmarshalField(f, request.Get(input))
+				if e != nil {
+					return e
+				}
+			} else if param := ft.Tag.Get("param"); param != "" {
+				e := r.passValidate(ft.Tag, request, param)
+				if e != nil {
+					return e
+				}
+				e = r.unmarshalField(f, request.ParamBytes(param))
+				if e != nil {
+					return e
+				}
+			} else if file := ft.Tag.Get("file"); file != "" {
+				e := r.passValidate(ft.Tag, request, file)
+				if e != nil {
+					return e
+				}
+				if f.Type() == uploadFileType {
+					uploadFile, e := request.File(file)
+					if e != nil {
+						return httpErrors.UnprocessableEntity(
+							fmt.Sprintf("attribute [%s] must be a file", file))
+					}
+					f.Set(reflect.ValueOf(uploadFile))
+				}
+			}
 		}
 	}
 	return nil
 }
 
-func (r *RequestInjector) parseField(fieldType reflect.Type, field reflect.Value, data []byte) error {
+func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error {
 	v := field.Interface()
 	if _, ok := v.([]byte); ok {
 		field.SetBytes(data)
 		return nil
 	}
 
-	switch fieldType.Kind() {
+	switch field.Kind() {
 	case reflect.String:
 		field.SetString(byt.ToString(data))
 	case reflect.Bool:
@@ -276,27 +259,36 @@ func (r *RequestInjector) parseField(fieldType reflect.Type, field reflect.Value
 		in, _ := byt.ToFloat64(data)
 		field.SetFloat(in)
 	case reflect.Struct:
-		in, e := r.parseStruct(fieldType, reflect.New(fieldType), jsonInput(data), 0)
+		newF := reflect.New(field.Type())
+		newV := reflect.Indirect(newF)
+
+		e := r.unmarshal(newV, jsonInput(data))
 		if e != nil {
 			return e
 		}
-		field.Set(in.Elem())
+		field.Set(newV)
 	case reflect.Ptr:
-		in, e := r.parseStruct(fieldType, reflect.New(fieldType), jsonInput(data), 0)
+
+		newF := reflect.New(field.Type().Elem())
+		newV := reflect.Indirect(newF)
+
+		e := r.unmarshal(newV, jsonInput(data))
 		if e != nil {
 			return e
 		}
-		field.Set(in)
+		field.Set(newF)
 	case reflect.Slice:
-		it := fieldType.Elem()
+		it := field.Type().Elem()
 		var ivs []reflect.Value
+
 		jsonInput(data).Each(func(j jsonInput) {
-			iv := reflect.New(it).Elem()
-			r.parseField(it, iv, j)
-			ivs = append(ivs, iv)
+			itv := reflect.New(it)
+			itve := reflect.Indirect(itv)
+			r.unmarshalField(itve, j)
+			ivs = append(ivs, itve)
 		})
 		l := len(ivs)
-		slice := reflect.MakeSlice(fieldType, l, l)
+		slice := reflect.MakeSlice(field.Type(), l, l)
 		for index, v := range ivs {
 			slice.Index(index).Set(v)
 		}
@@ -304,6 +296,18 @@ func (r *RequestInjector) parseField(fieldType reflect.Type, field reflect.Value
 		field.Set(slice)
 	}
 
+	return nil
+}
+
+func (r *RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) error {
+	if rule := tag.Get("validate"); rule != "" {
+		rules := strings.Split(rule, "|")
+
+		errs := r.validator.Passes(request, attribute, rules)
+		if len(errs) > 0 {
+			return httpErrors.UnprocessableEntity(errs[0])
+		}
+	}
 	return nil
 }
 

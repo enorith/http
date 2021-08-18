@@ -95,7 +95,7 @@ func (w *Wrapper) BindController(name string, controller interface{}) {
 
 //RegisterAction register route with giving handler
 // 	'handler' can be string(eg: "home@Index"，), RouteHandler
-// 	or any func returns string,RequestContract,[]byte or JsonAble
+// 	or any func returns string,ResponseContract,[]byte or struct (auto convert to json response)
 //
 func (w *Wrapper) RegisterAction(method int, path string, handler interface{}) *routesHolder {
 	routeHandler, e := w.wrap(handler)
