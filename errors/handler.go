@@ -26,8 +26,6 @@ type ErrorData struct {
 	Recovered bool
 	Fatal     bool
 	Traces    []Trace
-
-	Style string
 }
 
 type ErrorHandler interface {
@@ -108,12 +106,15 @@ func toErrorData(code int, err exception.Exception, debug, recoverd bool) (data 
 	data.File = err.File()
 	data.Code = code
 	data.Debug = debug
-	for _, t := range err.Traces() {
-		data.Traces = append(data.Traces, Trace{
-			File: t.File(),
-			Line: t.Line(),
-		})
+	if debug {
+		for _, t := range err.Traces() {
+			data.Traces = append(data.Traces, Trace{
+				File: t.File(),
+				Line: t.Line(),
+			})
+		}
 	}
+
 	data.Recovered = recoverd
 	data.Fatal = code >= 500
 	return
