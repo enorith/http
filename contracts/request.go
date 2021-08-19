@@ -94,7 +94,7 @@ type RequestContract interface {
 	SetHeaderString(key, value string) RequestContract
 	Authorization() []byte
 	BearerToken() ([]byte, error)
-	String() string
+	ToString() string
 }
 
 type UploadFile interface {

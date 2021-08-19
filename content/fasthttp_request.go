@@ -184,7 +184,7 @@ func (r *FastHttpRequest) BearerToken() ([]byte, error) {
 	return bytes.TrimSpace(auth[6:]), nil
 }
 
-func (r *FastHttpRequest) String() string {
+func (r *FastHttpRequest) ToString() string {
 	return fmt.Sprintf("%s%s", r.origin.Request.Header.String(), r.GetContent())
 }
 

@@ -113,7 +113,7 @@ func (f FakeRequest) BearerToken() ([]byte, error) {
 	panic("implement me")
 }
 
-func (f FakeRequest) String() string {
+func (f FakeRequest) ToString() string {
 	return "fake request"
 }
 

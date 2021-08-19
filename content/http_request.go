@@ -206,7 +206,7 @@ func (n *NetHttpRequest) BearerToken() ([]byte, error) {
 	return bytes.TrimSpace(auth[6:]), nil
 }
 
-func (n *NetHttpRequest) String() string {
+func (n *NetHttpRequest) ToString() string {
 	firstLine := fmt.Sprintf("%s %s %s", n.GetMethod(), n.origin.URL, n.origin.Proto)
 
 	return fmt.Sprintf("%s\r\n%s\r\n\r\n%s", firstLine,

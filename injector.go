@@ -279,6 +279,12 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		field.Set(newF)
 	case reflect.Slice:
 		it := field.Type().Elem()
+		if it.Kind() == reflect.Uint8 {
+			// []uint8 as []byte
+			field.SetBytes(data)
+			return nil
+		}
+
 		var ivs []reflect.Value
 
 		jsonInput(data).Each(func(j jsonInput) {
