@@ -1,12 +1,13 @@
 package view
 
 import (
+	"bytes"
 	"embed"
 	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
-	"os"
+	"regexp"
 	"strings"
 
 	"github.com/enorith/http/content"
@@ -20,18 +21,53 @@ type Manager struct {
 }
 
 func (m *Manager) Template(name string) (*template.Template, error) {
+	temp := template.New(name)
 
-	sep := string(os.PathSeparator)
-	if m.IsEmbed() {
-		sep = "/"
+	b, e := m.Parse(name)
+
+	if e != nil {
+		return nil, e
 	}
+	fmt.Println(string(b))
+
+	return temp.Parse(string(b))
+}
+
+func (m *Manager) viewFilePath(name string) string {
+
+	sep := "/"
+
 	if m.perfix != "" {
 		name = m.perfix + "." + name
 	}
 
-	file := fmt.Sprintf("%s.%s", strings.ReplaceAll(name, ".", sep), m.ext)
+	return fmt.Sprintf("%s.%s", strings.ReplaceAll(name, ".", sep), m.ext)
+}
 
-	return template.ParseFS(m.fileSystem, file)
+func (m *Manager) Parse(name string) ([]byte, error) {
+	tokenExp := regexp.MustCompile("(@.*)")
+	file := m.viewFilePath(name)
+	b, e := fs.ReadFile(m.fileSystem, file)
+
+	if e != nil {
+		return nil, e
+	}
+	ts := tokenExp.FindAllSubmatch(b, -1)
+	for _, v := range ts {
+		line := v[1]
+		tokens := bytes.Split(line, []byte(" "))
+		parser := tokens[0]
+		if bytes.Equal([]byte("@import"), parser) || bytes.Equal([]byte("@use"), parser) {
+			imp := bytes.TrimSpace(tokens[1])
+			bi, e := m.Parse(string(imp))
+			if e != nil {
+				return nil, e
+			}
+			b = bytes.ReplaceAll(b, v[1], bi)
+		}
+	}
+
+	return b, e
 }
 
 func (m *Manager) Get(name string, code int, data interface{}) (*content.TemplateResponse, error) {
