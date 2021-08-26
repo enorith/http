@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 
 	"github.com/buger/jsonparser"
+	"github.com/enorith/container"
 	"github.com/enorith/supports/byt"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -61,9 +62,15 @@ type InputSource interface {
 	GetValue(key ...string) InputValue
 }
 
+type WithContainer interface {
+	SetContainer(ioc container.Interface)
+	GetContainer() container.Interface
+}
+
 //RequestContract is interface of http request
 type RequestContract interface {
 	InputSource
+	WithContainer
 	Context() context.Context
 	Params() map[string][]byte
 	Param(key string) string

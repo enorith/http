@@ -3,11 +3,13 @@ package content
 import (
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/buger/jsonparser"
+	"github.com/enorith/container"
 	. "github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
 	jsoniter "github.com/json-iterator/go"
-	"strconv"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -39,6 +41,7 @@ func (p ParamUint64) Value() uint64 {
 type SimpleParamRequest struct {
 	params      map[string][]byte
 	paramsSlice [][]byte
+	container   container.Interface
 }
 
 func (shr *SimpleParamRequest) Params() map[string][]byte {
@@ -90,6 +93,14 @@ func (shr *SimpleParamRequest) SetParams(params map[string][]byte) {
 
 func (shr *SimpleParamRequest) SetParamsSlice(paramsSlice [][]byte) {
 	shr.paramsSlice = paramsSlice
+}
+
+func (shr *SimpleParamRequest) SetContainer(ioc container.Interface) {
+	shr.container = ioc
+}
+
+func (shr *SimpleParamRequest) GetContainer() container.Interface {
+	return shr.container
 }
 
 func GetJsonValue(r RequestContract, key string) []byte {

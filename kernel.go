@@ -19,7 +19,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const Version = "v0.0.8"
+const Version = "v0.0.10"
 
 type handlerType int
 
@@ -30,12 +30,11 @@ const (
 	HandlerNetHttp
 )
 
-//RequestMiddleware request middleware
-type RequestMiddleware interface {
-	Handle(r contracts.RequestContract, next PipeHandler) contracts.ResponseContract
+type RequestResolver interface {
+	ResolveRequest(r contracts.RequestContract, container container.Interface)
 }
 
-type MiddlewareGroup map[string][]RequestMiddleware
+type ContainerRegister func(request contracts.RequestContract) container.Interface
 
 func timeMic() int64 {
 	return time.Now().UnixNano() / int64(time.Microsecond)
@@ -51,6 +50,8 @@ type Kernel struct {
 	MaxRequestBodySize int
 	OutputLog          bool
 	Handler            handlerType
+	cr                 ContainerRegister
+	resolver           RequestResolver
 }
 
 func (k *Kernel) Wrapper() *router.Wrapper {
@@ -187,6 +188,9 @@ func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseCon
 			resp = k.errorHandler.HandleError(x, r, true)
 		}
 	}()
+	ioc := k.cr(r)
+	k.resolver.ResolveRequest(r, ioc)
+	r.SetContainer(ioc)
 
 	resp = k.SendRequestToRouter(r)
 
@@ -211,13 +215,21 @@ func (k *Kernel) SendRequestToRouter(r contracts.RequestContract) contracts.Resp
 	if !p.IsValid() {
 		return content.NotFoundResponse("not found")
 	}
-	if mid := p.Middleware(); mid != nil {
-		for _, v := range mid {
-			if ms, exists := k.middlewareGroup[v]; exists {
-				for _, md := range ms {
-					pipe.ThroughMiddleware(md)
-				}
+	ioc := r.GetContainer()
+	mid := p.Middleware()
+	for _, v := range mid {
+		if ms, exists := k.middlewareGroup[v]; exists {
+			for _, md := range ms {
+				pipe.ThroughMiddleware(md)
 			}
+		}
+		midKey := "middleware." + v
+		if ioc.Bound(midKey) {
+			instance, e := ioc.Instance(midKey)
+			if e != nil {
+				return content.ErrResponseFromError(e, 500, nil)
+			}
+			pipe.Through(instance.Interface())
 		}
 	}
 
@@ -227,10 +239,11 @@ func (k *Kernel) SendRequestToRouter(r contracts.RequestContract) contracts.Resp
 	})
 }
 
-func NewKernel(cr router.ContainerRegister, debug bool) *Kernel {
+func NewKernel(cr ContainerRegister, debug bool) *Kernel {
 	k := new(Kernel)
-	k.wrapper = router.NewWrapper(cr)
-	k.wrapper.ResolveRequest(KernelRequestResolver{})
+	k.cr = cr
+	k.resolver = KernelRequestResolver{}
+	k.wrapper = router.NewWrapper()
 	k.errorHandler = &errors.StandardErrorHandler{
 		Debug: debug,
 	}

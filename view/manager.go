@@ -28,7 +28,6 @@ func (m *Manager) Template(name string) (*template.Template, error) {
 	if e != nil {
 		return nil, e
 	}
-	fmt.Println(string(b))
 
 	return temp.Parse(string(b))
 }

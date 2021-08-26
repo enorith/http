@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/enorith/container"
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 	router2 "github.com/enorith/http/router"
@@ -71,10 +70,7 @@ func NewRequest(method, path string) *tests.FakeRequest {
 }
 
 func init() {
-	router = router2.NewWrapper(func(contracts.RequestContract) container.Interface {
-
-		return container.New()
-	})
+	router = router2.NewWrapper()
 	router.HandleGet("/", func(r contracts.RequestContract) contracts.ResponseContract {
 		return content.NewResponse([]byte("ok"), nil, 200)
 	})

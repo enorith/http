@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -21,14 +20,6 @@ type ContainerRegister func(request contracts.RequestContract) container.Interfa
 
 var MethodSplitter = "@"
 
-type CRUDHandler interface {
-	Index(request contracts.RequestContract) stdJson.Marshaler
-	Show(request contracts.RequestContract, id int64) stdJson.Marshaler
-	Store(request contracts.RequestContract) contracts.ResponseContract
-	Update(request contracts.RequestContract, id int64) contracts.ResponseContract
-	Delete(request contracts.RequestContract, id int64) contracts.ResponseContract
-}
-
 type Handler interface {
 	HandleRoute(r contracts.RequestContract) contracts.ResponseContract
 }
@@ -37,10 +28,6 @@ type Handler interface {
 type ResultHandler func(val []reflect.Value, err error) contracts.ResponseContract
 
 type GroupHandler func(r *Wrapper)
-
-type RequestResolver interface {
-	ResolveRequest(r contracts.RequestContract, container container.Interface)
-}
 
 var DefaultResultHandler = func(val []reflect.Value, err error) contracts.ResponseContract {
 	if err != nil {
@@ -77,10 +64,8 @@ var invalidHandler func(e error) RouteHandler = func(e error) RouteHandler {
 
 type Wrapper struct {
 	*router
-	controllers       map[string]interface{}
-	ResultHandler     ResultHandler
-	containerRegister ContainerRegister
-	requestResolver   RequestResolver
+	controllers   map[string]interface{}
+	ResultHandler ResultHandler
 }
 
 //BindControllers bind controllers
@@ -127,8 +112,7 @@ func (w *Wrapper) Delete(path string, handler interface{}) *routesHolder {
 }
 
 func (w *Wrapper) Group(g GroupHandler, prefix string, middleware ...string) *routesHolder {
-	tr := NewWrapper(w.containerRegister, prefix)
-	tr.requestResolver = w.requestResolver
+	tr := NewWrapper(prefix)
 	g(tr)
 
 	var rs []*paramRoute
@@ -147,37 +131,6 @@ func (w *Wrapper) FastHttpFileServer(path, root string, stripSlashes int) *route
 	return w.HandleGet(path, func(r contracts.RequestContract) contracts.ResponseContract {
 		return content.NewFastHttpFileServer(root, stripSlashes)
 	})
-}
-
-//CRUD register simple crud routes
-func (w *Wrapper) CRUD(path string, handler CRUDHandler, middleware ...string) {
-	w.Group(func(r *Wrapper) {
-		r.HandleGet("", func(r contracts.RequestContract) contracts.ResponseContract {
-			return content.JsonResponse(handler.Index(r), 200, content.DefaultHeader())
-		})
-		r.HandleGet("/:id", func(r contracts.RequestContract) contracts.ResponseContract {
-			id, _ := strconv.ParseInt(r.Param("id"), 10, 64)
-
-			return content.JsonResponse(handler.Show(r, id), 200, content.DefaultHeader())
-		})
-		r.HandlePost("", func(r contracts.RequestContract) contracts.ResponseContract {
-			return handler.Store(r)
-		})
-		r.HandlePut("/:id", func(r contracts.RequestContract) contracts.ResponseContract {
-			id, _ := strconv.ParseInt(r.Param("id"), 10, 64)
-
-			return handler.Update(r, id)
-		})
-		r.HandleDelete("/:id", func(r contracts.RequestContract) contracts.ResponseContract {
-			id, _ := strconv.ParseInt(r.Param("id"), 10, 64)
-
-			return handler.Delete(r, id)
-		})
-	}, path, middleware...)
-}
-
-func (w *Wrapper) ResolveRequest(rs RequestResolver) {
-	w.requestResolver = rs
 }
 
 func (w *Wrapper) parseController(s string) (c string, m string) {
@@ -211,13 +164,13 @@ func (w *Wrapper) wrap(handler interface{}) (RouteHandler, error) {
 			return nil, fmt.Errorf("router controller [%s] not registered", name)
 		}
 		return func(req contracts.RequestContract) contracts.ResponseContract {
-			runtime := w.getContainer(req)
+			runtime := req.GetContainer()
 			val, err := runtime.MethodCall(controller, method)
 			return w.handleResult(val, err)
 		}, nil
 	} else if reflect.TypeOf(handler).Kind() == reflect.Func { // function
 		return func(req contracts.RequestContract) contracts.ResponseContract {
-			runtime := w.getContainer(req)
+			runtime := req.GetContainer()
 			val, err := runtime.Invoke(handler)
 			return w.handleResult(val, err)
 		}, nil
@@ -245,13 +198,6 @@ func NewRouteHandlerFromHttp(h http.Handler) RouteHandler {
 
 		return content.ErrResponseFromError(errors.New("invalid handler giving"), 500, nil)
 	}
-}
-
-func (w *Wrapper) getContainer(req contracts.RequestContract) container.Interface {
-	c := w.containerRegister(req)
-	w.requestResolver.ResolveRequest(req, c)
-
-	return c
 }
 
 func convertResponse(data interface{}) contracts.ResponseContract {
@@ -301,7 +247,7 @@ func convertResponse(data interface{}) contracts.ResponseContract {
 	return resp
 }
 
-func NewWrapper(cr ContainerRegister, ps ...string) *Wrapper {
+func NewWrapper(ps ...string) *Wrapper {
 	var prefix string
 	if len(ps) > 0 {
 		prefix = ps[0]
@@ -322,13 +268,5 @@ func NewWrapper(cr ContainerRegister, ps ...string) *Wrapper {
 		prefix: prefix,
 	}
 
-	return &Wrapper{router: r, containerRegister: cr, requestResolver: defaultRequestResolver{}}
-}
-
-type defaultRequestResolver struct {
-}
-
-func (d defaultRequestResolver) ResolveRequest(r contracts.RequestContract, runtime container.Interface) {
-	runtime.RegisterSingleton(r)
-	runtime.Singleton("contracts.RequestContract", r)
+	return &Wrapper{router: r}
 }

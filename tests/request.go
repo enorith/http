@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
@@ -11,10 +12,11 @@ type FakeRequest struct {
 	content.SimpleParamRequest
 	Path   string
 	Method string
+	Url    *url.URL
 }
 
 func (f FakeRequest) GetValue(key ...string) contracts.InputValue {
-	panic("implement me")
+	return f.Get(key[0])
 }
 
 func (f FakeRequest) Context() context.Context {
@@ -26,7 +28,7 @@ func (f FakeRequest) Accepts() []byte {
 }
 
 func (f FakeRequest) ExceptsJson() bool {
-	panic("implement me")
+	return false
 }
 
 func (f FakeRequest) RequestWithJson() bool {
@@ -50,7 +52,8 @@ func (f FakeRequest) GetUri() []byte {
 }
 
 func (f FakeRequest) Get(key string) []byte {
-	panic("implement me")
+	x0 := f.Url.Query().Get(key)
+	return []byte(x0)
 }
 
 func (f FakeRequest) File(key string) (contracts.UploadFile, error) {
@@ -118,9 +121,12 @@ func (f FakeRequest) ToString() string {
 }
 
 func NewRequest(method, path string) *FakeRequest {
+	url, _ := url.Parse(path)
+
 	return &FakeRequest{
 		SimpleParamRequest: content.SimpleParamRequest{},
-		Path:               path,
+		Path:               url.Path,
 		Method:             method,
+		Url:                url,
 	}
 }

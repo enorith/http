@@ -97,7 +97,7 @@ func (s *Server) GetFastHttpServer(kernel *Kernel) *fasthttp.Server {
 	}
 }
 
-func NewServer(cr router.ContainerRegister, debug bool) *Server {
+func NewServer(cr ContainerRegister, debug bool) *Server {
 	k := NewKernel(cr, debug)
 
 	return &Server{k: k}
