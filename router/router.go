@@ -2,9 +2,10 @@ package router
 
 import (
 	"bytes"
-	"github.com/enorith/http/contracts"
 	"strings"
 	"sync"
+
+	"github.com/enorith/http/contracts"
 )
 
 const (
@@ -45,8 +46,9 @@ type paramRoute struct {
 	isValid    bool
 }
 
-func (p *paramRoute) SetMiddleware(middleware []string) {
+func (p *paramRoute) SetMiddleware(middleware []string) *paramRoute {
 	p.middleware = middleware
+	return p
 }
 
 func (p *paramRoute) Middleware() []string {

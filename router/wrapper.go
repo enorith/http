@@ -111,16 +111,14 @@ func (w *Wrapper) Delete(path string, handler interface{}) *routesHolder {
 	return w.RegisterAction(DELETE, path, handler)
 }
 
-func (w *Wrapper) Group(g GroupHandler, prefix string, middleware ...string) *routesHolder {
-	tr := NewWrapper(prefix)
+func (w *Wrapper) Group(g GroupHandler, prefix ...string) *routesHolder {
+	tr := NewWrapper(prefix...)
 	g(tr)
 
 	var rs []*paramRoute
 	for method, routes := range tr.routes {
 		for _, p := range routes {
-			route := w.addRoute(method, p.path, p.handler)
-			route.SetMiddleware(middleware)
-			rs = append(rs, route)
+			rs = append(rs, w.addRoute(method, p.path, p.handler).SetMiddleware(p.middleware))
 		}
 	}
 
