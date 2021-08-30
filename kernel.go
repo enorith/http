@@ -261,14 +261,14 @@ func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runt
 
 	runtime.Singleton(reflect.TypeOf((*contracts.RequestContract)(nil)).Elem(), r)
 
-	runtime.BindFunc(&content.Request{}, func(c container.Interface) (reflect.Value, error) {
+	runtime.BindFunc(&content.Request{}, func(c container.Interface) (interface{}, error) {
 
-		return reflect.ValueOf(&content.Request{RequestContract: r}), nil
+		return &content.Request{RequestContract: r}, nil
 	}, true)
 
-	runtime.BindFunc(content.Request{}, func(c container.Interface) (reflect.Value, error) {
+	runtime.BindFunc(content.Request{}, func(c container.Interface) (interface{}, error) {
 
-		return reflect.ValueOf(content.Request{RequestContract: r}), nil
+		return content.Request{RequestContract: r}, nil
 	}, true)
 
 	runtime.WithInjector(&RequestInjector{runtime: runtime, request: r, validator: validation.DefaultValidator})

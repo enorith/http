@@ -1,7 +1,6 @@
 package http_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/enorith/container"
@@ -98,17 +97,17 @@ func init() {
 	k = http.NewKernel(func(request contracts.RequestContract) container.Interface {
 
 		con := container.New()
-		con.BindFunc("middleware.test", func(c container.Interface) (reflect.Value, error) {
+		con.BindFunc("middleware.test", func(c container.Interface) (interface{}, error) {
 			var dm DemoMiddleware
 
-			return reflect.ValueOf(dm), nil
+			return dm, nil
 		}, false)
 
-		con.BindFunc("middleware.test2", func(c container.Interface) (reflect.Value, error) {
+		con.BindFunc("middleware.test2", func(c container.Interface) (interface{}, error) {
 			var dm DemoMiddleware
 			var dm2 Demo2Middleware
 
-			return reflect.ValueOf(http.MiddlewareChain(dm, dm2)), nil
+			return http.MiddlewareChain(dm, dm2), nil
 		}, false)
 		return con
 	}, false)
