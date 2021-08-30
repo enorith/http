@@ -39,7 +39,7 @@ func Register(name string, register RuleRegister) {
 	DefaultValidator.Register(name, register)
 }
 
-type RuleRegister func(attribute string, r contracts.InputSource, args ...string) rule.Rule
+type RuleRegister func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error)
 
 type Validator struct {
 	registers map[string]RuleRegister
@@ -70,7 +70,11 @@ func (v *Validator) Passes(req contracts.InputSource, attribute string, rules []
 		}
 		r, exist := v.GetRule(ss[0])
 		if exist {
-			inputRule := r(attribute, req, args...)
+			inputRule, e := r(attribute, req, args...)
+			if e != nil {
+				errors = append(errors, e.Error())
+				break
+			}
 			success, skip := inputRule.Passes(input)
 			message, success, skip := v.passRule(inputRule, input, attribute, ss[0])
 			if !success {
@@ -98,7 +102,11 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 			}
 			r, exist := v.GetRule(ss[0])
 			if exist {
-				inputRule := r(attribute, req, args...)
+				inputRule, e := r(attribute, req, args...)
+				if e != nil {
+					errors = append(errors, e.Error())
+					break
+				}
 				message, success, skip := v.passRule(inputRule, input, attribute, ss[0])
 				if !success {
 					errors = append(errors, message)
@@ -153,15 +161,15 @@ func (v *Validator) passRule(r rule.Rule, input contracts.InputValue, attribute,
 
 func init() {
 	DefaultValidator = &Validator{registers: map[string]RuleRegister{}, mu: sync.RWMutex{}}
-	Register("required", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
-		return rule.Required{Attribute: attribute, Source: r}
+	Register("required", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		return rule.Required{Attribute: attribute, Source: r}, nil
 	})
 
-	Register("file", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
-		return rule.FileInput{Attribute: attribute, Source: r}
+	Register("file", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		return rule.FileInput{Attribute: attribute, Source: r}, nil
 	})
 
-	Register("nullable", func(attribute string, r contracts.InputSource, args ...string) rule.Rule {
-		return rule.NullableInput{}
+	Register("nullable", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		return rule.NullableInput{}, nil
 	})
 }
