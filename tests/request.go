@@ -80,6 +80,10 @@ func (f FakeRequest) GetClientIp() string {
 	panic("implement me")
 }
 
+func (f FakeRequest) RemoteAddr() string {
+	panic("implement me")
+}
+
 func (f FakeRequest) GetContent() []byte {
 	panic("implement me")
 }

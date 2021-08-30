@@ -67,7 +67,7 @@ func (k *Kernel) handleFunc(f func() (request contracts.RequestContract, code in
 
 	if k.OutputLog {
 		end := timeMic()
-		log.Printf("/ %s - [%s] %s (%d) <%.3fms>", request.GetClientIp(),
+		log.Printf("/ %s - [%s] %s (%d) <%.3fms>", request.RemoteAddr(),
 			request.GetMethod(), request.GetUri(), code, float64(end-start)/1000)
 	}
 }

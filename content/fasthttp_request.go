@@ -57,6 +57,10 @@ func (r *FastHttpRequest) GetClientIp() string {
 	return r.origin.RemoteIP().String()
 }
 
+func (f *FastHttpRequest) RemoteAddr() string {
+	return f.origin.RemoteAddr().String()
+}
+
 func (r *FastHttpRequest) File(key string) (UploadFile, error) {
 	h, err := r.origin.FormFile(key)
 	if err != nil {

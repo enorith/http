@@ -92,6 +92,7 @@ type RequestContract interface {
 	GetString(key string) string
 	GetInt(key string) (int, error)
 	GetClientIp() string
+	RemoteAddr() string
 	GetContent() []byte
 	Unmarshal(to interface{}) error
 	GetSignature() []byte
