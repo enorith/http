@@ -10,7 +10,6 @@ require (
 	github.com/enorith/supports v0.0.12
 	github.com/go-errors/errors v1.1.1 // indirect
 	github.com/json-iterator/go v1.1.10
-	github.com/klauspost/compress v1.11.12 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
-	github.com/valyala/fasthttp v1.23.0
+	github.com/valyala/fasthttp v1.29.0
 )
