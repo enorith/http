@@ -8,24 +8,26 @@ import (
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/errors/assets"
+	"github.com/enorith/http/validation"
 	"github.com/enorith/http/view"
 	"github.com/enorith/supports/file"
 )
 
 type Trace struct {
-	File string
-	Line int
+	File string `json:"file"`
+	Line int    `json:"line"`
 }
 
 type ErrorData struct {
-	Code      int
-	File      string
-	Line      int
-	Message   string
-	Debug     bool
-	Recovered bool
-	Fatal     bool
-	Traces    []Trace
+	Code      int                      `json:"code"`
+	File      string                   `json:"file,omitempty"`
+	Line      int                      `json:"line,omitempty"`
+	Message   string                   `json:"message"`
+	Debug     bool                     `json:"debug,omitempty"`
+	Recovered bool                     `json:"recovered,omitempty"`
+	Fatal     bool                     `json:"fatal,omitempty"`
+	Traces    []Trace                  `json:"traces,omitempty"`
+	Errors    validation.ValidateError `json:"errors,omitempty"`
 }
 
 type ErrorHandler interface {
@@ -37,30 +39,17 @@ type StandardErrorHandler struct {
 }
 
 func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestContract, recovered bool) contracts.ResponseContract {
-	var ex exception.Exception
-	var code = 500
-	var headers map[string]string = nil
-	if t, ok := e.(string); ok {
-		ex = exception.NewException(t, code)
-	} else if t, ok := e.(exception.HttpException); ok {
-		ex = t
+
+	var headers map[string]string
+	if t, ok := e.(exception.HttpException); ok {
 		headers = t.Headers()
-	} else if t, ok := e.(exception.Exception); ok {
-		ex = t
-	} else if t, ok := e.(error); ok {
-		ex = exception.NewExceptionFromError(t, code)
-	} else {
-		ex = exception.NewException("undefined exception", code)
 	}
 
-	if t, ok := e.(contracts.WithStatusCode); ok {
-		code = t.StatusCode()
-	}
-
+	errorData := ParseError(e, h.Debug, recovered)
+	code := errorData.Code
 	if r.ExceptsJson() {
-		return JsonErrorResponseFormatter(ex, code, h.Debug, recovered, headers)
+		return content.JsonResponse(errorData, code, headers)
 	} else {
-		errorData := toErrorData(code, ex, h.Debug, recovered)
 		if v, e := view.View(fmt.Sprintf("errors.%d", code), code, errorData); e == nil {
 			return v
 		}
@@ -103,10 +92,12 @@ func JsonErrorResponseFormatter(err exception.Exception, code int, debug, recove
 func toErrorData(code int, err exception.Exception, debug, recoverd bool) (data ErrorData) {
 
 	data.Message = err.Error()
-	data.File = err.File()
 	data.Code = code
 	data.Debug = debug
 	if debug {
+		data.File = err.File()
+		data.Line = err.Line()
+
 		for _, t := range err.Traces() {
 			data.Traces = append(data.Traces, Trace{
 				File: t.File(),
@@ -115,7 +106,32 @@ func toErrorData(code int, err exception.Exception, debug, recoverd bool) (data 
 		}
 	}
 
+	e := err.GetError()
+
+	if ve, ok := e.(validation.ValidateError); ok {
+		data.Errors = ve
+	}
+
 	data.Recovered = recoverd
 	data.Fatal = code >= 500
 	return
+}
+
+func ParseError(e interface{}, debug, recovered bool) ErrorData {
+	var ex exception.Exception
+	var code = 500
+	if t, ok := e.(string); ok {
+		ex = exception.NewException(t, code)
+	} else if t, ok := e.(exception.Exception); ok {
+		ex = t
+	} else if t, ok := e.(error); ok {
+		ex = exception.NewExceptionFromError(t, code)
+	} else {
+		ex = exception.NewException("undefined exception", code)
+	}
+
+	if t, ok := e.(contracts.WithStatusCode); ok {
+		code = t.StatusCode()
+	}
+	return toErrorData(code, ex, debug, recovered)
 }

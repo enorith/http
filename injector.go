@@ -101,6 +101,10 @@ func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (refle
 			if err, ok := x.(error); ok {
 				e = err
 			}
+
+			if err, ok := x.(string); ok {
+				e = errors.New(err)
+			}
 		}
 	}()
 	ts := reflection.StructType(abs)
@@ -185,14 +189,18 @@ func (r *RequestInjector) isRequest(abs interface{}) bool {
 
 func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.InputSource) error {
 	typ := value.Type()
+	validateError := make(validation.ValidateError)
+
 	if validated, ok := value.Interface().(validation.WithValidation); ok {
 		rules := validated.Rules()
-		var errs []string
 		for attribute, rules := range rules {
-			errs = append(errs, r.validator.PassesRules(request, attribute, rules)...)
+			errs := r.validator.PassesRules(request, attribute, rules)
+			if len(errs) > 0 {
+				validateError[attribute] = errs
+			}
 		}
-		if len(errs) > 0 {
-			return httpErrors.UnprocessableEntity(errs[0])
+		if len(validateError) > 0 {
+			return validateError
 		}
 	}
 	for i := 0; i < value.NumField(); i++ {
@@ -200,27 +208,30 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 		ft := typ.Field(i)
 		if f.IsZero() {
 			if input := ft.Tag.Get("input"); input != "" {
-				e := r.passValidate(ft.Tag, request, input)
-				if e != nil {
-					return e
+				errs := r.passValidate(ft.Tag, request, input)
+				if len(errs) > 0 {
+					validateError[input] = errs
+					continue
 				}
-				e = r.unmarshalField(f, request.Get(input))
+				e := r.unmarshalField(f, request.Get(input))
 				if e != nil {
 					return e
 				}
 			} else if param := ft.Tag.Get("param"); param != "" {
-				e := r.passValidate(ft.Tag, request, param)
-				if e != nil {
-					return e
+				errs := r.passValidate(ft.Tag, request, param)
+				if len(errs) > 0 {
+					validateError[param] = errs
+					continue
 				}
-				e = r.unmarshalField(f, request.ParamBytes(param))
+				e := r.unmarshalField(f, request.ParamBytes(param))
 				if e != nil {
 					return e
 				}
 			} else if file := ft.Tag.Get("file"); file != "" {
-				e := r.passValidate(ft.Tag, request, file)
-				if e != nil {
-					return e
+				errs := r.passValidate(ft.Tag, request, file)
+				if len(errs) > 0 {
+					validateError[file] = errs
+					continue
 				}
 				if f.Type() == uploadFileType {
 					uploadFile, e := request.File(file)
@@ -232,6 +243,9 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 				}
 			}
 		}
+	}
+	if len(validateError) > 0 {
+		return validateError
 	}
 	return nil
 }
@@ -305,14 +319,11 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 	return nil
 }
 
-func (r *RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) error {
+func (r *RequestInjector) passValidate(tag reflect.StructTag, request contracts.InputSource, attribute string) []string {
 	if rule := tag.Get("validate"); rule != "" {
 		rules := strings.Split(rule, "|")
 
-		errs := r.validator.Passes(request, attribute, rules)
-		if len(errs) > 0 {
-			return httpErrors.UnprocessableEntity(errs[0])
-		}
+		return r.validator.Passes(request, attribute, rules)
 	}
 	return nil
 }

@@ -14,11 +14,5 @@ func (r Required) Passes(input contracts.InputValue) (success bool, skipAll bool
 		return true, false
 	}
 
-	f, _ := r.Source.File(r.Attribute)
-
-	if f != nil {
-		return true, false
-	}
-
 	return false, false
 }

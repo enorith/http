@@ -28,11 +28,11 @@ func (f FakeRequest) Accepts() []byte {
 }
 
 func (f FakeRequest) ExceptsJson() bool {
-	return false
+	return true
 }
 
 func (f FakeRequest) RequestWithJson() bool {
-	panic("implement me")
+	return false
 }
 
 func (f FakeRequest) IsXmlHttpRequest() bool {
@@ -57,67 +57,67 @@ func (f FakeRequest) Get(key string) []byte {
 }
 
 func (f FakeRequest) File(key string) (contracts.UploadFile, error) {
-	panic("implement me")
+	panic("implement File")
 }
 
 func (f FakeRequest) GetInt64(key string) (int64, error) {
-	panic("implement me")
+	panic("implement GetInt64")
 }
 
 func (f FakeRequest) GetUint64(key string) (uint64, error) {
-	panic("implement me")
+	panic("implement m GetUint64")
 }
 
 func (f FakeRequest) GetString(key string) string {
-	panic("implement me")
+	panic("implement me GetString")
 }
 
 func (f FakeRequest) GetInt(key string) (int, error) {
-	panic("implement me")
+	panic("implement me GetInt")
 }
 
 func (f FakeRequest) GetClientIp() string {
-	panic("implement me")
+	panic("implement me GetClientIp")
 }
 
 func (f FakeRequest) RemoteAddr() string {
-	panic("implement me")
+	panic("implement me RemoteAddr")
 }
 
 func (f FakeRequest) GetContent() []byte {
-	panic("implement me")
+	panic("implement me GetContent")
 }
 
 func (f FakeRequest) Unmarshal(to interface{}) error {
-	panic("implement me")
+	panic("implement me Unmarshal")
 }
 
 func (f FakeRequest) GetSignature() []byte {
-	panic("implement me")
+	panic("implement me GetSignature")
 }
 
 func (f FakeRequest) Header(key string) []byte {
-	panic("implement me")
+	panic("implement me Header")
 }
 
 func (f FakeRequest) HeaderString(key string) string {
-	panic("implement me")
+	panic("implement me HeaderString")
 }
 
 func (f FakeRequest) SetHeader(key string, value []byte) contracts.RequestContract {
-	panic("implement me")
+	panic("implement me SetHeader")
 }
 
 func (f FakeRequest) SetHeaderString(key, value string) contracts.RequestContract {
-	panic("implement me")
+	panic("implement me SetHeaderString")
 }
 
 func (f FakeRequest) Authorization() []byte {
-	panic("implement me")
+	panic("implement me Authorization")
 }
 
 func (f FakeRequest) BearerToken() ([]byte, error) {
-	panic("implement me")
+	panic("implement me BearerToken")
 }
 
 func (f FakeRequest) ToString() string {

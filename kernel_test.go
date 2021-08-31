@@ -41,6 +41,11 @@ func TestKernel_HandleInject(t *testing.T) {
 		t.Fail()
 	}
 }
+func TestKernel_HandleValidate(t *testing.T) {
+	resp := k.Handle(tests.NewRequest("GET", "/inject"))
+
+	t.Log("handle result validate", resp.StatusCode(), string(resp.Content()), resp.Headers())
+}
 
 func TestKernel_Middleware(t *testing.T) {
 	resp := k.Handle(tests.NewRequest("GET", "/mid"))
@@ -68,7 +73,7 @@ func (c CustomResp) Headers() map[string]string {
 
 type Foo struct {
 	content.Request
-	Bar string `input:"bar"`
+	Bar string `input:"bar" validate:"required"`
 }
 
 type DemoMiddleware struct {
