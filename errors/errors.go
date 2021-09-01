@@ -72,7 +72,7 @@ func (j JsonError) Error() string {
 }
 
 func (j JsonError) StatusCode() int {
-	if j.statusCode < 1 {
+	if j.statusCode == 0 {
 		return 200
 	}
 	return j.statusCode

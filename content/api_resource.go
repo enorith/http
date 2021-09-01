@@ -8,6 +8,7 @@ var (
 	DefaultDataKey    = "data"
 	DefaultCodeKey    = "code"
 	DefaultMessageKey = "message"
+	DefaultCode       = 200
 )
 
 type ApiResouce struct {
@@ -33,6 +34,11 @@ func (ar *ApiResouce) Code(code int) *ApiResouce {
 	return ar
 }
 
+func (ar *ApiResouce) WithStatus(statusCode int) *ApiResouce {
+	ar.statusCode = statusCode
+	return ar
+}
+
 func (ar *ApiResouce) Data(data interface{}) *ApiResouce {
 	ar.data = data
 	return ar
@@ -43,11 +49,20 @@ func (ar *ApiResouce) Message(message string) *ApiResouce {
 	return ar
 }
 
+func (ar *ApiResouce) StatusCode() int {
+	if ar.statusCode == 0 {
+		return 200
+	}
+
+	return ar.statusCode
+}
+
 func ResourceResponse(data interface{}) *ApiResouce {
 	return &ApiResouce{
 		dataKey:    DefaultDataKey,
 		codeKey:    DefaultCodeKey,
 		messageKey: DefaultMessageKey,
 		data:       data,
+		code:       DefaultCode,
 	}
 }
