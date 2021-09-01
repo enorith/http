@@ -23,6 +23,10 @@ type WithStatusCode interface {
 	StatusCode() int
 }
 
+type WithResponseCode interface {
+	ResponseCode() int
+}
+
 type WithContentType interface {
 	ContentType() string
 }

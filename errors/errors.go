@@ -52,12 +52,36 @@ func (nf NotFound) StatusCode() int {
 	return 404
 }
 
-type Code int
+type StatusCode int
 
-func (c Code) Error() string {
+func (c StatusCode) Error() string {
 	return http.StatusText(int(c))
 }
 
-func (c Code) StatusCode() int {
+func (c StatusCode) StatusCode() int {
 	return int(c)
+}
+
+type JsonError struct {
+	message          string
+	code, statusCode int
+}
+
+func (j JsonError) Error() string {
+	return j.message
+}
+
+func (j JsonError) StatusCode() int {
+	if j.statusCode < 1 {
+		return 200
+	}
+	return j.statusCode
+}
+
+func (j JsonError) ResponseCode() int {
+	return j.code
+}
+
+func Json(message string, code int) *JsonError {
+	return &JsonError{message: message, code: code}
 }

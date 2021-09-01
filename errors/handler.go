@@ -19,15 +19,16 @@ type Trace struct {
 }
 
 type ErrorData struct {
-	Code      int                      `json:"code"`
-	File      string                   `json:"file,omitempty"`
-	Line      int                      `json:"line,omitempty"`
-	Message   string                   `json:"message"`
-	Debug     bool                     `json:"debug,omitempty"`
-	Recovered bool                     `json:"recovered,omitempty"`
-	Fatal     bool                     `json:"fatal,omitempty"`
-	Traces    []Trace                  `json:"traces,omitempty"`
-	Errors    validation.ValidateError `json:"errors,omitempty"`
+	Code       int                      `json:"code"`
+	StatusCode int                      `json:"status_code"`
+	File       string                   `json:"file,omitempty"`
+	Line       int                      `json:"line,omitempty"`
+	Message    string                   `json:"message"`
+	Debug      bool                     `json:"debug,omitempty"`
+	Recovered  bool                     `json:"recovered,omitempty"`
+	Fatal      bool                     `json:"fatal,omitempty"`
+	Traces     []Trace                  `json:"traces,omitempty"`
+	Errors     validation.ValidateError `json:"errors,omitempty"`
 }
 
 type ErrorHandler interface {
@@ -46,7 +47,7 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 	}
 
 	errorData := ParseError(e, h.Debug, recovered)
-	code := errorData.Code
+	code := errorData.StatusCode
 	if r.ExceptsJson() {
 		return content.JsonResponse(errorData, code, headers)
 	} else {
@@ -65,36 +66,13 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 	}
 }
 
-func JsonErrorResponseFormatter(err exception.Exception, code int, debug, recovered bool, headers map[string]string) contracts.ResponseContract {
-
-	data := map[string]interface{}{
-		"code":    code,
-		"message": err.Error(),
-	}
-
-	if debug {
-		data["file"] = err.File()
-		data["line"] = err.Line()
-		data["recoverd"] = recovered
-		data["traces"] = func() []string {
-			var traces []string
-			for k, v := range err.Traces() {
-				frame := fmt.Sprintf("#%d %s [%d]: %s", k+1, v.File(), v.Line(), v.Name())
-				traces = append(traces, frame)
-			}
-			return traces
-		}()
-	}
-
-	return content.JsonResponse(data, code, headers)
-}
-
-func toErrorData(code int, err exception.Exception, debug, recoverd bool) (data ErrorData) {
+func ToErrorData(code, statusCode int, err exception.Exception, debug, recoverd bool) (data ErrorData) {
 
 	data.Message = err.Error()
-	data.Code = code
+	data.StatusCode = statusCode
 	data.Debug = debug
-	if debug {
+	data.Fatal = statusCode >= 500
+	if debug && data.Fatal {
 		data.File = err.File()
 		data.Line = err.Line()
 
@@ -112,26 +90,35 @@ func toErrorData(code int, err exception.Exception, debug, recoverd bool) (data 
 		data.Errors = ve
 	}
 
+	if t, ok := err.(contracts.WithResponseCode); ok {
+		code = t.ResponseCode()
+	} else if rc, ok := e.(contracts.WithResponseCode); ok {
+		code = rc.ResponseCode()
+	}
+
+	data.Code = code
 	data.Recovered = recoverd
-	data.Fatal = code >= 500
 	return
 }
 
 func ParseError(e interface{}, debug, recovered bool) ErrorData {
 	var ex exception.Exception
-	var code = 500
+	var statusCode = 500
+	if t, ok := e.(contracts.WithStatusCode); ok {
+		statusCode = t.StatusCode()
+	}
+
 	if t, ok := e.(string); ok {
-		ex = exception.NewException(t, code)
+		ex = exception.NewException(t, statusCode)
 	} else if t, ok := e.(exception.Exception); ok {
 		ex = t
 	} else if t, ok := e.(error); ok {
-		ex = exception.NewExceptionFromError(t, code)
+		ex = exception.NewExceptionFromError(t, statusCode)
 	} else {
-		ex = exception.NewException("undefined exception", code)
+		ex = exception.NewException("undefined exception", statusCode)
 	}
 
-	if t, ok := e.(contracts.WithStatusCode); ok {
-		code = t.StatusCode()
-	}
-	return toErrorData(code, ex, debug, recovered)
+	code := statusCode
+
+	return ToErrorData(code, statusCode, ex, debug, recovered)
 }
