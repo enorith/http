@@ -80,7 +80,8 @@ type routesHolder struct {
 
 func (rh *routesHolder) Middleware(middleware ...string) *routesHolder {
 	for _, v := range rh.routes {
-		v.SetMiddleware(middleware)
+		ms := append(v.middleware, middleware...)
+		v.SetMiddleware(ms)
 	}
 	return rh
 }
