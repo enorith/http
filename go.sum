@@ -5,8 +5,8 @@ github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx2
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/enorith/container v0.0.15 h1:eG73zjsJRy34M5N8J/x1yTFMPHeXZs8NmLvX9/F1yoU=
-github.com/enorith/container v0.0.15/go.mod h1:qGItKkY9KIkkYkIUyywuaCYa8pfo40HyT66XGwzlNQE=
+github.com/enorith/container v0.0.16 h1:wJJmPtrxruKTQL14QWiHwnW9rRTGei8NnDDo8S6P3Z4=
+github.com/enorith/container v0.0.16/go.mod h1:qGItKkY9KIkkYkIUyywuaCYa8pfo40HyT66XGwzlNQE=
 github.com/enorith/exception v0.0.2 h1:Z2SMN7zx2UaXKh49wbc2YwgQ8xUcsOQ6J2ecq6q3snA=
 github.com/enorith/exception v0.0.2/go.mod h1:OiHWfkZXqUU7JwAMFRRM6abSwjBZuX0P4kLLxndKTzk=
 github.com/enorith/language v0.0.0-20210311034453-b97f7834a24e h1:Ea3RC9iiBk25Ylnb78eqU3hCZcD3mr0IjyWUbbJNgfU=
