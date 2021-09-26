@@ -256,6 +256,16 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		field.SetBytes(data)
 		return nil
 	}
+	newF := reflect.New(field.Type())
+
+	if fv, ok := newF.Interface().(contracts.InputScanner); ok {
+		e := fv.Scan(data)
+		if e == nil {
+			field.Set(newF.Elem())
+		}
+
+		return e
+	}
 
 	switch field.Kind() {
 	case reflect.String:

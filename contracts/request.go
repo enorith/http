@@ -111,3 +111,7 @@ type UploadFile interface {
 	Close() error
 	Filename() string
 }
+
+type InputScanner interface {
+	Scan(data []byte) error
+}
