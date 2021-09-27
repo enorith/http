@@ -67,10 +67,16 @@ type WithContainer interface {
 	GetContainer() container.Interface
 }
 
+type WithRouteName interface {
+	SetRouteName(name string)
+	GetRouteName() string
+}
+
 //RequestContract is interface of http request
 type RequestContract interface {
 	InputSource
 	WithContainer
+	WithRouteName
 	Context() context.Context
 	Params() map[string][]byte
 	Param(key string) string

@@ -7,6 +7,7 @@ import (
 	"github.com/enorith/http"
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/pipeline"
 	"github.com/enorith/http/tests"
 )
 
@@ -79,7 +80,7 @@ type Foo struct {
 type DemoMiddleware struct {
 }
 
-func (d DemoMiddleware) Handle(r contracts.RequestContract, next http.PipeHandler) contracts.ResponseContract {
+func (d DemoMiddleware) Handle(r contracts.RequestContract, next pipeline.PipeHandler) contracts.ResponseContract {
 	resp := next(r)
 
 	resp.SetHeader("X-Middleware", "demo")
@@ -90,7 +91,7 @@ func (d DemoMiddleware) Handle(r contracts.RequestContract, next http.PipeHandle
 type Demo2Middleware struct {
 }
 
-func (d Demo2Middleware) Handle(r contracts.RequestContract, next http.PipeHandler) contracts.ResponseContract {
+func (d Demo2Middleware) Handle(r contracts.RequestContract, next pipeline.PipeHandler) contracts.ResponseContract {
 	resp := next(r)
 
 	resp.SetHeader("X-Middleware2", "demo2")
@@ -112,7 +113,7 @@ func init() {
 			var dm DemoMiddleware
 			var dm2 Demo2Middleware
 
-			return http.MiddlewareChain(dm, dm2), nil
+			return pipeline.MiddlewareChain(dm, dm2), nil
 		}, false)
 		return con
 	}, false)

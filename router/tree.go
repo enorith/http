@@ -75,7 +75,7 @@ const (
 )
 
 type routeValue struct {
-	route       *paramRoute
+	route       *ParamRoute
 	params      Params
 	paramsSlice ParamSlice
 	tsr         bool
@@ -88,7 +88,7 @@ type node struct {
 	nType     nodeType
 	priority  uint32
 	children  []*node
-	route     *paramRoute
+	route     *ParamRoute
 }
 
 // Increments priority of the given child and reorders if necessary
@@ -116,7 +116,7 @@ func (n *node) incrementChildPrio(pos int) int {
 
 // addRoute adds a node with the givenhandler to the path.
 // Not concurrency-safe!
-func (n *node) addRoute(path string, route *paramRoute) {
+func (n *node) addRoute(path string, route *ParamRoute) {
 	fullPath := path
 	n.priority++
 
@@ -224,7 +224,7 @@ walk:
 	}
 }
 
-func (n *node) insertChild(path, fullPath string, route *paramRoute) {
+func (n *node) insertChild(path, fullPath string, route *ParamRoute) {
 	for {
 		// Find prefix until first wildcard
 		wildcard, i, valid := findWildcard(path)

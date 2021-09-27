@@ -1,7 +1,6 @@
 package content
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -42,6 +41,7 @@ type SimpleParamRequest struct {
 	params      map[string][]byte
 	paramsSlice [][]byte
 	container   container.Interface
+	routeName   string
 }
 
 func (shr *SimpleParamRequest) Params() map[string][]byte {
@@ -63,7 +63,7 @@ func (shr *SimpleParamRequest) ParamBytes(key string) []byte {
 func (shr *SimpleParamRequest) ParamInt64(key string) (int64, error) {
 	param, ok := shr.params[key]
 	if !ok {
-		return 0, errors.New(fmt.Sprintf("can not get param [%s]", key))
+		return 0, fmt.Errorf("can not get param [%s]", key)
 	}
 
 	return byt.ToInt64(param)
@@ -72,7 +72,7 @@ func (shr *SimpleParamRequest) ParamInt64(key string) (int64, error) {
 func (shr *SimpleParamRequest) ParamUint64(key string) (uint64, error) {
 	param, ok := shr.params[key]
 	if !ok {
-		return 0, errors.New(fmt.Sprintf("can not get param [%s]", key))
+		return 0, fmt.Errorf("can not get param [%s]", key)
 	}
 
 	return byt.ToUint64(param)
@@ -81,7 +81,7 @@ func (shr *SimpleParamRequest) ParamUint64(key string) (uint64, error) {
 func (shr *SimpleParamRequest) ParamInt(key string) (int, error) {
 	param, ok := shr.params[key]
 	if !ok {
-		return 0, errors.New(fmt.Sprintf("can not get param [%s]", key))
+		return 0, fmt.Errorf("can not get param [%s]", key)
 	}
 
 	return strconv.Atoi(string(param))
@@ -101,6 +101,14 @@ func (shr *SimpleParamRequest) SetContainer(ioc container.Interface) {
 
 func (shr *SimpleParamRequest) GetContainer() container.Interface {
 	return shr.container
+}
+
+func (shr *SimpleParamRequest) SetRouteName(name string) {
+	shr.routeName = name
+}
+
+func (shr *SimpleParamRequest) GetRouteName() string {
+	return shr.routeName
 }
 
 func GetJsonValue(r RequestContract, key string) []byte {

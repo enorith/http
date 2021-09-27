@@ -1,4 +1,4 @@
-package http
+package pipeline
 
 import "github.com/enorith/http/contracts"
 

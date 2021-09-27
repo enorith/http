@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/pipeline"
 )
 
 const (
@@ -37,51 +38,77 @@ type partial struct {
 	isParam bool
 }
 
-type paramRoute struct {
+type ParamRoute struct {
 	path       string
 	partials   []partial
 	handler    RouteHandler
 	middleware []string
-	isParam    bool
 	isValid    bool
+	pipeFuncs  []pipeline.PipeFunc
+	name       string
 }
 
-func (p *paramRoute) SetMiddleware(middleware []string) *paramRoute {
+func (p *ParamRoute) SetMiddleware(middleware []string) *ParamRoute {
 	p.middleware = middleware
 	return p
 }
 
-func (p *paramRoute) Middleware() []string {
+func (p *ParamRoute) Middleware() []string {
 	return p.middleware
 }
 
-func (p *paramRoute) IsValid() bool {
+func (p *ParamRoute) IsValid() bool {
 	return p.isValid
 }
 
 //Partials partials of route path
-func (p *paramRoute) Partials() []partial {
+func (p *ParamRoute) Partials() []partial {
 	return p.partials
 }
 
 //Handler route handler
-func (p *paramRoute) Handler() RouteHandler {
+func (p *ParamRoute) Handler() RouteHandler {
 	return p.handler
 }
 
 //Path path
-func (p *paramRoute) Path() string {
+func (p *ParamRoute) Path() string {
 	return p.path
 }
 
+//PipeFuncs return pipeline middleware
+func (p *ParamRoute) PipeFuncs() []pipeline.PipeFunc {
+	return p.pipeFuncs
+}
+
+//Name of route
+func (p *ParamRoute) Name() string {
+	return p.name
+}
+
 type routesHolder struct {
-	routes []*paramRoute
+	routes []*ParamRoute
 }
 
 func (rh *routesHolder) Middleware(middleware ...string) *routesHolder {
 	for _, v := range rh.routes {
 		ms := append(v.middleware, middleware...)
 		v.SetMiddleware(ms)
+	}
+	return rh
+}
+
+func (rh *routesHolder) Use(p ...pipeline.PipeFunc) *routesHolder {
+	for _, v := range rh.routes {
+		ps := append(v.pipeFuncs, p...)
+		v.pipeFuncs = ps
+	}
+	return rh
+}
+
+func (rh *routesHolder) Name(name string) *routesHolder {
+	for _, v := range rh.routes {
+		v.name = name
 	}
 	return rh
 }
@@ -106,12 +133,12 @@ func (mt *methodTrees) set(method string, n *node) {
 }
 
 type router struct {
-	routes map[string][]*paramRoute
+	routes map[string][]*ParamRoute
 	trees  *methodTrees
 	prefix string
 }
 
-func (r *router) Routes() map[string][]*paramRoute {
+func (r *router) Routes() map[string][]*ParamRoute {
 	return r.routes
 }
 
@@ -138,7 +165,7 @@ func (r *router) HandleDelete(path string, handler RouteHandler) *routesHolder {
 
 //Register register route
 func (r *router) Register(method int, path string, handler RouteHandler) *routesHolder {
-	var routes []*paramRoute
+	var routes []*ParamRoute
 	for i := GET; i <= OPTIONS; i <<= 1 {
 		if m, ok := methodMap[i]; i&method > 0 && ok {
 			routes = append(routes, r.addRoute(m, path, handler))
@@ -150,9 +177,9 @@ func (r *router) Register(method int, path string, handler RouteHandler) *routes
 	}
 }
 
-func (r *router) addRoute(method string, path string, handler RouteHandler) *paramRoute {
+func (r *router) addRoute(method string, path string, handler RouteHandler) *ParamRoute {
 	path = JoinPaths(r.prefix, path)
-	route := &paramRoute{
+	route := &ParamRoute{
 		path:    path,
 		handler: handler,
 		isValid: true,
@@ -169,31 +196,12 @@ func (r *router) addRoute(method string, path string, handler RouteHandler) *par
 	return route
 }
 
-func resolvePartials(path string) []partial {
-	ps := bytes.Split([]byte(path), []byte("/"))
-	var partials []partial
-	for _, v := range ps {
-		if bytes.HasPrefix(v, []byte(":")) {
-			partials = append(partials, partial{
-				segment: v,
-				isParam: true,
-			})
-		} else {
-			partials = append(partials, partial{
-				segment: v,
-				isParam: false,
-			})
-		}
-	}
-	return partials
-}
-
-func (r *router) Match(request contracts.RequestContract) *paramRoute {
+func (r *router) Match(request contracts.RequestContract) *ParamRoute {
 	// using bytes
 	return r.MatchTree(request)
 }
 
-func (r *router) MatchTree(request contracts.RequestContract) *paramRoute {
+func (r *router) MatchTree(request contracts.RequestContract) *ParamRoute {
 	method := request.GetMethod()
 	sp := string(r.normalPath(request.GetPathBytes()))
 	tree := r.trees.get(method)
@@ -203,14 +211,17 @@ func (r *router) MatchTree(request contracts.RequestContract) *paramRoute {
 		if value.route != nil {
 			request.SetParams(value.params)
 			request.SetParamsSlice(value.paramsSlice)
+			request.SetRouteName(value.route.name)
 			return value.route
 		}
 	}
 
-	return &paramRoute{}
+	return &ParamRoute{}
 }
 
-func (r *router) MatchBytes(request contracts.RequestContract) *paramRoute {
+// Depracated MatchBytes, using MatchTree
+//
+func (r *router) MatchBytes(request contracts.RequestContract) *ParamRoute {
 	method := request.GetMethod()
 	pathBytes := r.normalPath(request.GetPathBytes())
 	bytesPartials := bytes.Split(pathBytes, []byte("/"))
@@ -219,7 +230,7 @@ func (r *router) MatchBytes(request contracts.RequestContract) *paramRoute {
 
 	for _, route := range r.routes[method] {
 		/// static match
-		if bytes.Compare([]byte(route.path), pathBytes) == 0 {
+		if bytes.Equal([]byte(route.path), pathBytes) {
 			return route
 		} else if len(route.partials) == partialLength {
 			/// /test/foo -> /test/:name
@@ -241,7 +252,7 @@ func (r *router) MatchBytes(request contracts.RequestContract) *paramRoute {
 					params[string(pa[1:])] = part
 					paramsSlice = append(paramsSlice, part)
 					matches++
-				} else if bytes.Compare(pa, part) == 0 {
+				} else if bytes.Equal(pa, part) {
 					/// pa = test part=test
 					matches++
 				}
@@ -254,13 +265,14 @@ func (r *router) MatchBytes(request contracts.RequestContract) *paramRoute {
 		}
 	}
 
-	return &paramRoute{
+	return &ParamRoute{
 		isValid: false,
 	}
 }
 
-///
-func (r *router) MatchString(request contracts.RequestContract) *paramRoute {
+// Depracated MatchString, using MatchTree
+//
+func (r *router) MatchString(request contracts.RequestContract) *ParamRoute {
 	method := request.GetMethod()
 	sp := string(r.normalPath(request.GetPathBytes()))
 	partials := strings.Split(sp, "/")
@@ -284,7 +296,7 @@ func (r *router) MatchString(request contracts.RequestContract) *paramRoute {
 					params[string(pa[1:])] = []byte(part)
 					paramsSlice = append(paramsSlice, []byte(part))
 					matches++
-				} else if bytes.Compare(pa, []byte(part)) == 0 {
+				} else if bytes.Equal(pa, []byte(part)) {
 					matches++
 				}
 			}
@@ -296,7 +308,7 @@ func (r *router) MatchString(request contracts.RequestContract) *paramRoute {
 		}
 	}
 
-	return &paramRoute{
+	return &ParamRoute{
 		isValid: false,
 	}
 }
@@ -310,10 +322,6 @@ func (r *router) normalPath(path []byte) []byte {
 	}
 
 	return path
-}
-
-func (r *router) hashRequestRoute(rq contracts.RequestContract) string {
-	return string(rq.GetUri())
 }
 
 func AppendSlash(path string) string {

@@ -14,12 +14,13 @@ import (
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
 	"github.com/enorith/http/errors"
+	"github.com/enorith/http/pipeline"
 	"github.com/enorith/http/router"
 	"github.com/enorith/http/validation"
 	"github.com/valyala/fasthttp"
 )
 
-const Version = "v0.0.23"
+const Version = "v1.0.0"
 
 type handlerType int
 
@@ -42,8 +43,8 @@ func timeMic() int64 {
 
 type Kernel struct {
 	wrapper            *router.Wrapper
-	middleware         []RequestMiddleware
-	middlewareGroup    map[string][]RequestMiddleware
+	middleware         []pipeline.RequestMiddleware
+	middlewareGroup    map[string][]pipeline.RequestMiddleware
 	errorHandler       errors.ErrorHandler
 	tcpKeepAlive       bool
 	RequestCurrency    int
@@ -152,15 +153,15 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 	})
 }
 
-func (k *Kernel) SetMiddlewareGroup(middlewareGroup map[string][]RequestMiddleware) {
+func (k *Kernel) SetMiddlewareGroup(middlewareGroup map[string][]pipeline.RequestMiddleware) {
 	k.middlewareGroup = middlewareGroup
 }
 
-func (k *Kernel) SetMiddleware(ms []RequestMiddleware) {
+func (k *Kernel) SetMiddleware(ms []pipeline.RequestMiddleware) {
 	k.middleware = ms
 }
 
-func (k *Kernel) Use(m RequestMiddleware) *Kernel {
+func (k *Kernel) Use(m pipeline.RequestMiddleware) *Kernel {
 	k.middleware = append(k.middleware, m)
 	return k
 }
@@ -206,7 +207,7 @@ func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseCon
 }
 
 func (k *Kernel) SendRequestToRouter(r contracts.RequestContract) contracts.ResponseContract {
-	pipe := new(Pipeline)
+	pipe := new(pipeline.Pipeline)
 	pipe.Send(r)
 	for _, m := range k.middleware {
 		pipe.ThroughMiddleware(m)
@@ -215,6 +216,11 @@ func (k *Kernel) SendRequestToRouter(r contracts.RequestContract) contracts.Resp
 	if !p.IsValid() {
 		return content.NotFoundResponse("not found")
 	}
+	pfs := p.PipeFuncs()
+	for _, pf := range pfs {
+		pipe.Through(pf)
+	}
+
 	ioc := r.GetContainer()
 	mid := p.Middleware()
 	for _, v := range mid {
@@ -248,8 +254,8 @@ func NewKernel(cr ContainerRegister, debug bool) *Kernel {
 		Debug: debug,
 	}
 	k.RequestCurrency = DefaultConcurrency
-	k.middleware = []RequestMiddleware{}
-	k.middlewareGroup = make(map[string][]RequestMiddleware)
+	k.middleware = []pipeline.RequestMiddleware{}
+	k.middlewareGroup = make(map[string][]pipeline.RequestMiddleware)
 	return k
 }
 

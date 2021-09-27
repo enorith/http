@@ -115,7 +115,7 @@ func (w *Wrapper) Group(g GroupHandler, prefix ...string) *routesHolder {
 	tr := NewWrapper(prefix...)
 	g(tr)
 
-	var rs []*paramRoute
+	var rs []*ParamRoute
 	for method, routes := range tr.routes {
 		for _, p := range routes {
 			rs = append(rs, w.addRoute(method, p.path, p.handler).SetMiddleware(p.middleware))
@@ -251,10 +251,10 @@ func NewWrapper(ps ...string) *Wrapper {
 		prefix = ps[0]
 	}
 	r := &router{
-		routes: func() map[string][]*paramRoute {
-			rs := map[string][]*paramRoute{}
+		routes: func() map[string][]*ParamRoute {
+			rs := map[string][]*ParamRoute{}
 			for _, v := range methodMap {
-				rs[v] = []*paramRoute{}
+				rs[v] = []*ParamRoute{}
 			}
 
 			return rs
