@@ -6,7 +6,7 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/enorith/container"
-	. "github.com/enorith/http/contracts"
+	"github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -111,7 +111,7 @@ func (shr *SimpleParamRequest) GetRouteName() string {
 	return shr.routeName
 }
 
-func GetJsonValue(r RequestContract, key string) []byte {
+func GetJsonValue(r contracts.RequestContract, key string) []byte {
 	if r.RequestWithJson() {
 		val, _, _, _ := jsonparser.Get(r.GetContent(), key)
 
@@ -122,5 +122,5 @@ func GetJsonValue(r RequestContract, key string) []byte {
 }
 
 type Request struct {
-	RequestContract
+	contracts.RequestContract
 }

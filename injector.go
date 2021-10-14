@@ -223,9 +223,11 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					validateError[param] = errs
 					continue
 				}
-				e := r.unmarshalField(f, request.ParamBytes(param))
-				if e != nil {
-					return e
+				if rc, ok := request.(contracts.RequestContract); ok {
+					e := r.unmarshalField(f, rc.ParamBytes(param))
+					if e != nil {
+						return e
+					}
 				}
 			} else if file := ft.Tag.Get("file"); file != "" {
 				errs := r.passValidate(ft.Tag, request, file)

@@ -57,7 +57,6 @@ func (i InputValue) Unmarshal(v interface{}) error {
 //InputSource is general input source
 type InputSource interface {
 	Get(key string) []byte
-	ParamBytes(key string) []byte
 	File(key string) (UploadFile, error)
 	GetValue(key ...string) InputValue
 }
@@ -80,6 +79,7 @@ type RequestContract interface {
 	Context() context.Context
 	Params() map[string][]byte
 	Param(key string) string
+	ParamBytes(key string) []byte
 	ParamInt64(key string) (int64, error)
 	ParamUint64(key string) (uint64, error)
 	ParamInt(key string) (int, error)

@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	net "net/http"
+	"net"
+	nt "net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,8 +43,12 @@ func (s *Server) serveFastHttp(addr string) {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		if err := srv.ListenAndServe(addr); err != nil {
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
 			log.Fatalf("listen %s error: %v", addr, err)
+		}
+		if err = srv.Serve(ln); err != nil {
+			log.Fatalf("serve %s error: %v", addr, err)
 		}
 	}()
 	log.Printf("%s served at [%s]", logPrefix("fasthttp"), addr)
@@ -56,7 +61,7 @@ func (s *Server) serveFastHttp(addr string) {
 }
 
 func (s *Server) serveNetHttp(addr string) {
-	srv := net.Server{
+	srv := nt.Server{
 		Addr:         addr,
 		Handler:      s.k,
 		ReadTimeout:  ReadTimeout,
@@ -65,7 +70,7 @@ func (s *Server) serveNetHttp(addr string) {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != net.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && err != nt.ErrServerClosed {
 			log.Fatalf("listen %s error: %v", addr, err)
 		}
 	}()
@@ -87,13 +92,13 @@ func (s *Server) serveNetHttp(addr string) {
 func (s *Server) GetFastHttpServer(kernel *Kernel) *fasthttp.Server {
 
 	return &fasthttp.Server{
-		Handler:            kernel.FastHttpHandler,
-		Concurrency:        kernel.RequestCurrency,
-		TCPKeepalive:       kernel.IsKeepAlive(),
-		MaxRequestBodySize: kernel.MaxRequestBodySize,
-		ReadTimeout:        ReadTimeout,
-		WriteTimeout:       WriteTimeout,
-		IdleTimeout:        IdleTimeout,
+		Handler: kernel.FastHttpHandler,
+		// Concurrency:        kernel.RequestCurrency,
+		// TCPKeepalive:       kernel.IsKeepAlive(),
+		// MaxRequestBodySize: kernel.MaxRequestBodySize,
+		// ReadTimeout:        ReadTimeout,
+		// WriteTimeout:       WriteTimeout,
+		// IdleTimeout:        IdleTimeout,
 	}
 }
 

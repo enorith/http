@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/enorith/http/contracts"
+	"github.com/enorith/http/contracts"
 	"github.com/enorith/supports/byt"
 )
 
@@ -20,7 +20,6 @@ type NetHttpRequest struct {
 	SimpleParamRequest
 	origin       *http.Request
 	originWriter http.ResponseWriter
-	params       map[string]string
 	signature    []byte
 	content      []byte
 }
@@ -81,7 +80,7 @@ func (n *NetHttpRequest) Get(key string) []byte {
 	return GetJsonValue(n, key)
 }
 
-func (n *NetHttpRequest) File(key string) (UploadFile, error) {
+func (n *NetHttpRequest) File(key string) (contracts.UploadFile, error) {
 	_, h, err := n.origin.FormFile(key)
 	if err != nil {
 		return nil, err
@@ -113,7 +112,7 @@ func (n *NetHttpRequest) GetString(key string) string {
 	return string(n.Get(key))
 }
 
-func (n *NetHttpRequest) GetValue(key ...string) InputValue {
+func (n *NetHttpRequest) GetValue(key ...string) contracts.InputValue {
 	if len(key) > 0 {
 		return n.Get(key[0])
 	}
@@ -128,6 +127,7 @@ func (n *NetHttpRequest) GetClientIp() string {
 
 	return ip
 }
+
 func (n *NetHttpRequest) RemoteAddr() string {
 	ip, _, _ := net.SplitHostPort(n.origin.RemoteAddr)
 
@@ -180,13 +180,13 @@ func (n *NetHttpRequest) HeaderString(key string) string {
 	return n.origin.Header.Get(key)
 }
 
-func (n *NetHttpRequest) SetHeader(key string, value []byte) RequestContract {
+func (n *NetHttpRequest) SetHeader(key string, value []byte) contracts.RequestContract {
 	n.origin.Header.Set(key, string(value))
 
 	return n
 }
 
-func (n *NetHttpRequest) SetHeaderString(key, value string) RequestContract {
+func (n *NetHttpRequest) SetHeaderString(key, value string) contracts.RequestContract {
 	n.origin.Header.Set(key, value)
 
 	return n
