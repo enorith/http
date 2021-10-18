@@ -31,15 +31,16 @@ const (
 	HandlerNetHttp
 )
 
+var RequestLogger = func(request contracts.RequestContract, statusCode int, start time.Time) {
+	log.Printf("/ %s - [%s] %s (%d) <%s>", request.RemoteAddr(),
+		request.GetMethod(), request.GetUri(), statusCode, time.Since(start))
+}
+
 type RequestResolver interface {
 	ResolveRequest(r contracts.RequestContract, container container.Interface)
 }
 
 type ContainerRegister func(request contracts.RequestContract) container.Interface
-
-func timeMic() int64 {
-	return time.Now().UnixNano() / int64(time.Microsecond)
-}
 
 type Kernel struct {
 	wrapper            *router.Wrapper
@@ -60,16 +61,11 @@ func (k *Kernel) Wrapper() *router.Wrapper {
 }
 
 func (k *Kernel) handleFunc(f func() (request contracts.RequestContract, code int)) {
-	var start int64
-	if k.OutputLog {
-		start = timeMic()
-	}
+	start := time.Now()
 	request, code := f()
 
-	if k.OutputLog {
-		end := timeMic()
-		log.Printf("/ %s - [%s] %s (%d) <%.3fms>", request.RemoteAddr(),
-			request.GetMethod(), request.GetUri(), code, float64(end-start)/1000)
+	if k.OutputLog && RequestLogger != nil {
+		RequestLogger(request, code, start)
 	}
 }
 
