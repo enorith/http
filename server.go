@@ -18,7 +18,7 @@ import (
 var (
 	ReadTimeout  = time.Second * 30
 	WriteTimeout = time.Second * 30
-	IdleTimeout  = time.Second * 30
+	IdleTimeout  = time.Second * 10
 )
 
 type RouterRegister func(rw *router.Wrapper, k *Kernel)
@@ -92,13 +92,13 @@ func (s *Server) serveNetHttp(addr string) {
 func (s *Server) GetFastHttpServer(kernel *Kernel) *fasthttp.Server {
 
 	return &fasthttp.Server{
-		Handler: kernel.FastHttpHandler,
-		// Concurrency:        kernel.RequestCurrency,
-		// TCPKeepalive:       kernel.IsKeepAlive(),
-		// MaxRequestBodySize: kernel.MaxRequestBodySize,
-		// ReadTimeout:        ReadTimeout,
-		// WriteTimeout:       WriteTimeout,
-		// IdleTimeout:        IdleTimeout,
+		Handler:            kernel.FastHttpHandler,
+		Concurrency:        kernel.RequestCurrency,
+		TCPKeepalive:       kernel.IsKeepAlive(),
+		MaxRequestBodySize: kernel.MaxRequestBodySize,
+		ReadTimeout:        ReadTimeout,
+		WriteTimeout:       WriteTimeout,
+		IdleTimeout:        IdleTimeout,
 	}
 }
 

@@ -11,5 +11,5 @@ require (
 	github.com/go-errors/errors v1.4.1 // indirect
 	github.com/json-iterator/go v1.1.12
 	github.com/stretchr/testify v1.7.0 // indirect
-	github.com/valyala/fasthttp v1.31.0
+	github.com/valyala/fasthttp v1.34.0
 )
