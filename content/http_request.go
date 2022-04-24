@@ -125,7 +125,7 @@ func (n *NetHttpRequest) GetValue(key ...string) contracts.InputValue {
 func (n *NetHttpRequest) GetClientIp() string {
 	ip, _, _ := net.SplitHostPort(n.origin.RemoteAddr)
 
-	return ip
+	return ExchangeIpFromProxy(ip, n)
 }
 
 func (n *NetHttpRequest) RemoteAddr() string {

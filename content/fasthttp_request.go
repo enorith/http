@@ -53,7 +53,9 @@ func (r *FastHttpRequest) Accepts() []byte {
 }
 
 func (r *FastHttpRequest) GetClientIp() string {
-	return r.origin.RemoteIP().String()
+	ip := r.origin.RemoteIP().String()
+
+	return ExchangeIpFromProxy(ip, r)
 }
 
 func (f *FastHttpRequest) RemoteAddr() string {

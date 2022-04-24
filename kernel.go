@@ -20,7 +20,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const Version = "v1.0.3"
+const Version = "v1.1.0"
 
 type handlerType int
 
@@ -218,6 +218,8 @@ func (k *Kernel) SendRequestToRouter(r contracts.RequestContract) contracts.Resp
 	}
 
 	ioc := r.GetContainer()
+	ioc.Bind(&router.ParamRoute{}, p, true)
+
 	mid := p.Middleware()
 	for _, v := range mid {
 		if ms, exists := k.middlewareGroup[v]; exists {

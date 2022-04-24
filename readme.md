@@ -141,6 +141,6 @@ func main() {
 
 ## TODO
 
-- [ ] Get client ip behand proxy
+- [x] Get client ip behand proxy
 - [ ] Validation (incomplete)
-- [ ] Logging
+- [x] Logging

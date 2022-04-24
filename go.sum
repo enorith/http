@@ -12,8 +12,8 @@ github.com/enorith/exception v0.0.2/go.mod h1:OiHWfkZXqUU7JwAMFRRM6abSwjBZuX0P4k
 github.com/enorith/language v0.0.0-20210311034453-b97f7834a24e h1:Ea3RC9iiBk25Ylnb78eqU3hCZcD3mr0IjyWUbbJNgfU=
 github.com/enorith/language v0.0.0-20210311034453-b97f7834a24e/go.mod h1:lR6+6amExYujU7vx/8JEddpv2xlCf2sUXciyg8JKJ7g=
 github.com/enorith/supports v0.0.5/go.mod h1:arD7UoIt8BKSkZINkCQmKQjE1sW1BbJugDc+mKuFtyk=
-github.com/enorith/supports v0.0.12 h1:je3hegQdoNl1GERDMWsQFIkMw1eji7k4zlWuhF9KDLo=
-github.com/enorith/supports v0.0.12/go.mod h1:arD7UoIt8BKSkZINkCQmKQjE1sW1BbJugDc+mKuFtyk=
+github.com/enorith/supports v0.1.0 h1:BBqVC+/ZEf9PXNFCTcEi7uX4shDWXXrfwJbRZG4AzLY=
+github.com/enorith/supports v0.1.0/go.mod h1:0nriOuQGM9gI48UTRBv89avtHLFPW3I4MCbC0lSHbYU=
 github.com/go-errors/errors v1.4.1 h1:IvVlgbzSsaUNudsw5dcXSzF3EWyXTi5XrAdngnuhRyg=
 github.com/go-errors/errors v1.4.1/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
