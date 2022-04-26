@@ -1,6 +1,7 @@
 package content
 
 import (
+	"errors"
 	"html/template"
 	"net/http"
 
@@ -31,6 +32,10 @@ var (
 			"Content-Type": ContentTypeHtml,
 		}
 	}
+)
+
+var (
+	ErrInvalidRequest = errors.New("invalid request")
 )
 
 //Response http response
@@ -114,6 +119,15 @@ type File struct {
 
 func (f *File) Path() string {
 	return f.path
+}
+
+type RedirectResponse struct {
+	*Response
+	url string
+}
+
+func (r *RedirectResponse) URL() string {
+	return r.url
 }
 
 func NewFileResponse(path string) *File {
@@ -242,4 +256,19 @@ func (m JsonMessage) MarshalJSON() ([]byte, error) {
 
 func (m JsonMessage) StatusCode() int {
 	return int(m)
+}
+
+func Redirect(r contracts.RequestContract, url string, code int) contracts.ResponseContract {
+	if _, ok := r.(*FastHttpRequest); ok {
+		// fastR.Origin().Redirect(url, code)
+		return &RedirectResponse{
+			Response: NewHandledResponse(code),
+			url:      url,
+		}
+	} else if netR, ok := r.(*NetHttpRequest); ok {
+		http.Redirect(netR.OriginWriter(), netR.Origin(), url, code)
+		return NewHandledResponse()
+	}
+
+	return ErrResponseFromError(ErrInvalidRequest, 500, nil)
 }

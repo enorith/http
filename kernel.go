@@ -122,6 +122,9 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 		if k.tcpKeepAlive {
 			resp.SetHeader("Connection", "keep-alive")
 		}
+		if rr, ok := resp.(*content.RedirectResponse); ok {
+			ctx.Redirect(rr.URL(), rr.StatusCode())
+		}
 
 		ctx.Response.SetStatusCode(resp.StatusCode())
 		if resp.Headers() != nil {
