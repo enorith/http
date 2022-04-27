@@ -123,6 +123,9 @@ func (f FakeRequest) BearerToken() ([]byte, error) {
 func (f FakeRequest) ToString() string {
 	return "fake request"
 }
+func (f FakeRequest) GetURL() *url.URL {
+	panic("not implemented") // TODO: Implement
+}
 
 func NewRequest(method, path string) *FakeRequest {
 	url, _ := url.Parse(path)

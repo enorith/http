@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -62,6 +63,10 @@ func (n *NetHttpRequest) GetPathBytes() []byte {
 
 func (n *NetHttpRequest) GetUri() []byte {
 	return []byte(n.origin.RequestURI)
+}
+
+func (n *NetHttpRequest) GetURL() *url.URL {
+	return n.origin.URL
 }
 
 func (n *NetHttpRequest) Get(key string) []byte {

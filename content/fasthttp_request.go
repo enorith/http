@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 
 	"github.com/enorith/http/contracts"
@@ -33,6 +34,21 @@ func (r *FastHttpRequest) GetPathBytes() []byte {
 
 func (r *FastHttpRequest) GetUri() []byte {
 	return r.origin.RequestURI()
+}
+
+func (r FastHttpRequest) GetURL() *url.URL {
+	uri := r.origin.Request.URI()
+
+	return &url.URL{
+		Scheme:     string(uri.Scheme()),
+		Opaque:     "",
+		User:       url.UserPassword(string(uri.Username()), string(uri.Password())),
+		Host:       string(uri.Host()),
+		Path:       string(uri.Path()),
+		RawPath:    string(uri.PathOriginal()),
+		ForceQuery: false,
+		RawQuery:   string(uri.QueryString()),
+	}
 }
 
 func (r *FastHttpRequest) IsXmlHttpRequest() bool {

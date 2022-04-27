@@ -3,6 +3,7 @@ package contracts
 import (
 	"context"
 	"mime/multipart"
+	"net/url"
 
 	"github.com/buger/jsonparser"
 	"github.com/enorith/container"
@@ -71,11 +72,18 @@ type WithRouteName interface {
 	GetRouteName() string
 }
 
+type WithPathInfo interface {
+	GetURL() *url.URL
+	GetPathBytes() []byte
+	GetUri() []byte
+}
+
 //RequestContract is interface of http request
 type RequestContract interface {
 	InputSource
 	WithContainer
 	WithRouteName
+	WithPathInfo
 	Context() context.Context
 	Params() map[string][]byte
 	Param(key string) string
@@ -91,8 +99,6 @@ type RequestContract interface {
 	RequestWithJson() bool
 	IsXmlHttpRequest() bool
 	GetMethod() string
-	GetPathBytes() []byte
-	GetUri() []byte
 	GetInt64(key string) (int64, error)
 	GetUint64(key string) (uint64, error)
 	GetString(key string) string
