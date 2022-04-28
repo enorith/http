@@ -86,6 +86,11 @@ func (k *Kernel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			for k, v := range headers {
 				w.Header().Set(k, v)
 			}
+			if cr, ok := resp.(contracts.WithResponseCookies); ok {
+				for _, c := range cr.Cookies() {
+					http.SetCookie(w, c)
+				}
+			}
 			if !resp.Handled() {
 				// call after set headers, before write body
 				w.WriteHeader(resp.StatusCode())
@@ -130,6 +135,11 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 		if resp.Headers() != nil {
 			for k, v := range resp.Headers() {
 				ctx.Response.Header.Set(k, v)
+			}
+		}
+		if cr, ok := resp.(contracts.WithResponseCookies); ok {
+			for _, c := range cr.Cookies() {
+				ctx.Response.Header.Add("Set-Cookie", c.String())
 			}
 		}
 		ctx.Response.Header.Set("Server", fmt.Sprintf("enorith/%s (fasthttp)", Version))

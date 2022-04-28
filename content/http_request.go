@@ -197,6 +197,16 @@ func (n *NetHttpRequest) SetHeaderString(key, value string) contracts.RequestCon
 	return n
 }
 
+func (n *NetHttpRequest) CookieByte(key string) []byte {
+	c, e := n.origin.Cookie(key)
+
+	if e == nil {
+		return []byte(c.Value)
+	}
+
+	return nil
+}
+
 func (n *NetHttpRequest) Authorization() []byte {
 	return n.Header("Authorization")
 }

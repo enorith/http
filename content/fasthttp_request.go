@@ -21,7 +21,12 @@ type FastHttpRequest struct {
 }
 
 func (r *FastHttpRequest) GetMethod() string {
+
 	return string(r.origin.Method())
+}
+
+func (r *FastHttpRequest) CookieByte(key string) []byte {
+	return r.origin.Request.Header.Cookie(key)
 }
 
 func (r *FastHttpRequest) Context() context.Context {

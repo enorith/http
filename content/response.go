@@ -4,6 +4,7 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"sync"
 
 	stdJson "encoding/json"
 
@@ -44,6 +45,8 @@ type Response struct {
 	headers    map[string]string
 	statusCode int
 	handled    bool
+	cookies    []*http.Cookie
+	mu         sync.RWMutex
 }
 
 func (r *Response) SetStatusCode(code int) contracts.ResponseContract {
@@ -82,6 +85,27 @@ func (r *Response) Headers() map[string]string {
 //WithStatusCode status code
 func (r *Response) StatusCode() int {
 	return r.statusCode
+}
+
+func (r *Response) Cookies() []*http.Cookie {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.cookies
+}
+
+func (r *Response) SetCookie(cookie *http.Cookie) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.cookies = append(r.cookies, cookie)
+}
+
+func (r *Response) ClearCookies() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.cookies = make([]*http.Cookie, 0)
 }
 
 type ErrorResponse struct {
@@ -148,6 +172,8 @@ func NewResponse(content []byte, headers map[string]string, code int) *Response 
 		content:    content,
 		headers:    hs,
 		statusCode: code,
+		mu:         sync.RWMutex{},
+		cookies:    make([]*http.Cookie, 0),
 	}
 }
 

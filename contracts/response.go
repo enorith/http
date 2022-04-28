@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"html/template"
+	"net/http"
 )
 
 type ResponseContract interface {
@@ -42,4 +43,10 @@ type WithHeaders interface {
 type FileServer interface {
 	Path() string
 	Prefix() string
+}
+
+type WithResponseCookies interface {
+	Cookies() []*http.Cookie
+	SetCookie(cookie *http.Cookie)
+	ClearCookies()
 }

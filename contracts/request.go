@@ -78,6 +78,10 @@ type WithPathInfo interface {
 	GetUri() []byte
 }
 
+type WithRequestCookies interface {
+	CookieByte(key string) []byte
+}
+
 //RequestContract is interface of http request
 type RequestContract interface {
 	InputSource
