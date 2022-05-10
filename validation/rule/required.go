@@ -5,8 +5,6 @@ import (
 )
 
 type Required struct {
-	Attribute string
-	Source    contracts.InputSource
 }
 
 func (r Required) Passes(input contracts.InputValue) (success bool, skipAll bool) {
@@ -15,4 +13,23 @@ func (r Required) Passes(input contracts.InputValue) (success bool, skipAll bool
 	}
 
 	return false, false
+}
+
+type RequiredIfRule struct {
+	fn func() bool
+}
+
+func (ri RequiredIfRule) Passes(input contracts.InputValue) (success bool, skipAll bool) {
+	i := ri.fn()
+	if i {
+		if len(input) > 0 {
+			return true, false
+		}
+	}
+
+	return !i, false
+}
+
+func RequiredIf(fn func() bool) RequiredIfRule {
+	return RequiredIfRule{fn}
 }

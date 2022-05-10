@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -75,7 +77,6 @@ func (v *Validator) Passes(req contracts.InputSource, attribute string, rules []
 				errors = append(errors, e.Error())
 				break
 			}
-			success, skip := inputRule.Passes(input)
 			message, success, skip := v.passRule(inputRule, input, attribute, ss[0])
 			if !success {
 				errors = append(errors, message)
@@ -162,7 +163,7 @@ func (v *Validator) passRule(r rule.Rule, input contracts.InputValue, attribute,
 func init() {
 	DefaultValidator = &Validator{registers: map[string]RuleRegister{}, mu: sync.RWMutex{}}
 	Register("required", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
-		return rule.Required{Attribute: attribute, Source: r}, nil
+		return rule.Required{}, nil
 	})
 
 	Register("file", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
@@ -171,5 +172,56 @@ func init() {
 
 	Register("nullable", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
 		return rule.NullableInput{}, nil
+	})
+
+	Register("skipnull", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		return rule.NullableInput{}, nil
+	})
+
+	Register("numeric", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		if len(args) == 0 {
+			return nil, errors.New("numeric rule require a numeric type, usage: validate:\"numeric:integer\"")
+		}
+
+		return rule.Numeric(rule.NumberType(args[0])), nil
+	})
+
+	Register("datetime", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		return rule.Datetime(args...), nil
+	})
+
+	Register("in", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		return rule.In(args...), nil
+	})
+
+	Register("required_if", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		if len(args) == 0 {
+			return nil, errors.New("required_if rule require a condition, usage: validate:\"required_if:field,value\"")
+		}
+		fv := r.Get(args[0])
+
+		return rule.RequiredIf(func() bool {
+			if len(args) > 1 {
+				return bytes.Equal(fv, []byte(args[1]))
+			}
+
+			return len(fv) > 0
+		}), nil
+	})
+
+	Register("required_with", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
+		if len(args) == 0 {
+			return nil, errors.New("required_with rule require a condition, usage: validate:\"required_with:field1,field2\"")
+		}
+
+		return rule.RequiredIf(func() bool {
+			for _, v := range args {
+				if len(r.Get(v)) > 0 {
+					return true
+				}
+			}
+
+			return false
+		}), nil
 	})
 }

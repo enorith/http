@@ -7,7 +7,7 @@ require (
 	github.com/enorith/container v0.0.18
 	github.com/enorith/exception v0.0.2
 	github.com/enorith/language v0.0.0-20210311034453-b97f7834a24e
-	github.com/enorith/supports v0.1.0
+	github.com/enorith/supports v0.1.5
 	github.com/json-iterator/go v1.1.12
 	github.com/valyala/fasthttp v1.34.0
 )

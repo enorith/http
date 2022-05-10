@@ -260,8 +260,9 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 	}
 	newF := reflect.New(field.Type())
 
-	if fv, ok := newF.Interface().(contracts.InputScanner); ok {
-		e := fv.Scan(data)
+	newInterface := newF.Interface()
+	if fv, ok := newInterface.(contracts.InputScanner); ok && len(data) > 0 {
+		e := fv.ScanInput(data)
 		if e == nil {
 			field.Set(newF.Elem())
 		}

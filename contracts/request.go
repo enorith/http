@@ -129,5 +129,5 @@ type UploadFile interface {
 }
 
 type InputScanner interface {
-	Scan(data []byte) error
+	ScanInput(data []byte) error
 }
