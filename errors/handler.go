@@ -37,7 +37,7 @@ type ErrorHandler interface {
 
 type StandardErrorHandler struct {
 	Debug    bool
-	Callback func(ed ErrorData)
+	Callback func(ed ErrorData, r contracts.RequestContract)
 }
 
 func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestContract, recovered bool) contracts.ResponseContract {
@@ -50,7 +50,7 @@ func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestCon
 	errorData := ParseError(e, h.Debug, recovered)
 	code := errorData.StatusCode
 	if h.Callback != nil {
-		h.Callback(errorData)
+		h.Callback(errorData, r)
 	}
 	if r.ExceptsJson() {
 		return content.JsonResponse(errorData, code, headers)
