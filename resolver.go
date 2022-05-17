@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	contextType   = reflection.InterfaceType[context.Context]()
-	containerType = reflection.InterfaceType[container.Interface]()
+	contextType = reflection.InterfaceType[context.Context]()
 )
 
 type KernelRequestResolver struct {
@@ -38,9 +37,5 @@ func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runt
 
 	runtime.BindFunc(contextType, func(c container.Interface) (interface{}, error) {
 		return r.Context(), nil
-	}, true)
-
-	runtime.BindFunc(containerType, func(c container.Interface) (interface{}, error) {
-		return c, nil
 	}, true)
 }
