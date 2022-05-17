@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/enorith/container"
@@ -16,7 +15,6 @@ import (
 	"github.com/enorith/http/errors"
 	"github.com/enorith/http/pipeline"
 	"github.com/enorith/http/router"
-	"github.com/enorith/http/validation"
 	"github.com/valyala/fasthttp"
 )
 
@@ -199,8 +197,8 @@ func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseCon
 		}
 	}()
 	ioc := k.cr(r)
-	k.resolver.ResolveRequest(r, ioc)
 	r.SetContainer(ioc)
+	k.resolver.ResolveRequest(r, ioc)
 
 	resp = k.SendRequestToRouter(r)
 
@@ -268,25 +266,4 @@ func NewKernel(cr ContainerRegister, debug bool) *Kernel {
 	k.middleware = []pipeline.RequestMiddleware{}
 	k.middlewareGroup = make(map[string][]pipeline.RequestMiddleware)
 	return k
-}
-
-type KernelRequestResolver struct {
-}
-
-func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime container.Interface) {
-	runtime.RegisterSingleton(r)
-
-	runtime.Singleton(reflect.TypeOf((*contracts.RequestContract)(nil)).Elem(), r)
-
-	runtime.BindFunc(&content.Request{}, func(c container.Interface) (interface{}, error) {
-
-		return &content.Request{RequestContract: r}, nil
-	}, true)
-
-	runtime.BindFunc(content.Request{}, func(c container.Interface) (interface{}, error) {
-
-		return content.Request{RequestContract: r}, nil
-	}, true)
-
-	runtime.WithInjector(&RequestInjector{runtime: runtime, request: r, validator: validation.DefaultValidator})
 }
