@@ -10,6 +10,7 @@ type ResponseContract interface {
 	Headers() map[string]string
 	SetHeader(key string, value string) ResponseContract
 	SetHeaders(headers map[string]string) ResponseContract
+	Header(header string) string
 	StatusCode() int
 	SetStatusCode(code int) ResponseContract
 	Handled() bool

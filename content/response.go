@@ -72,6 +72,10 @@ func (r *Response) SetHeaders(headers map[string]string) contracts.ResponseContr
 	return r
 }
 
+func (r *Response) Header(header string) string {
+	return r.headers[header]
+}
+
 //Content response body
 func (r *Response) Content() []byte {
 	return r.content

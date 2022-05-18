@@ -8,7 +8,7 @@ import (
 
 //RequestMiddleware request middleware
 type RequestMiddleware interface {
-	Handle(r contracts.RequestContract, next PipeHandler) contracts.ResponseContract
+	Handle(request contracts.RequestContract, next PipeHandler) contracts.ResponseContract
 }
 
 type MiddlewareGroup map[string][]RequestMiddleware
