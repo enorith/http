@@ -196,6 +196,7 @@ func ErrResponseFromError(e error, code int, headers map[string]string) *ErrorRe
 	var ex exception.Exception
 	if es, ok := e.(contracts.WithStatusCode); ok {
 		ex = exception.NewHttpExceptionFromError(e, es.StatusCode(), 0, headers)
+		code = es.StatusCode()
 		headers = nil
 	} else {
 		ex = exception.NewExceptionFromError(e, 500)

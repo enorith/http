@@ -203,7 +203,7 @@ func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseCon
 	resp = k.SendRequestToRouter(r)
 
 	if t, ok := resp.(*content.ErrorResponse); ok {
-		resp = k.errorHandler.HandleError(t.E(), r, false)
+		resp = k.errorHandler.HandleError(t, r, false)
 	}
 
 	if t, ok := resp.(exception.Exception); ok {
