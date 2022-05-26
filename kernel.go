@@ -144,6 +144,10 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 		if tp, ok := resp.(contracts.TemplateResponseContract); ok {
 			temp := tp.Template()
 			temp.Execute(ctx, tp.TemplateData())
+		} else if sr, ok := resp.(*content.StreamResponse); ok {
+			strem := sr.Stream()
+			defer strem.Close()
+			io.Copy(ctx, strem)
 		} else if fp, ok := resp.(*content.File); ok {
 			fasthttp.ServeFile(ctx, fp.Path())
 		} else if wp, ok := resp.(io.WriterTo); ok {

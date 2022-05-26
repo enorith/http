@@ -2,7 +2,9 @@ package content
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"sync"
 
@@ -163,6 +165,33 @@ func NewFileResponse(path string) *File {
 		NewResponse(nil, nil, 200),
 		path,
 	}
+}
+
+type StreamResponse struct {
+	*Response
+	stream io.ReadCloser
+}
+
+func (sr *StreamResponse) Stream() io.ReadCloser {
+	return sr.stream
+}
+
+func NewStreamResponse(stream io.ReadCloser, code int) *StreamResponse {
+	return &StreamResponse{
+		NewResponse(nil, nil, code),
+		stream,
+	}
+}
+
+func NewDownloadResponse(stream io.ReadCloser, filename string) *StreamResponse {
+	sr := &StreamResponse{
+		NewResponse(nil, nil, 200),
+		stream,
+	}
+
+	sr.SetHeader("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	return sr
 }
 
 func NewResponse(content []byte, headers map[string]string, code int) *Response {
