@@ -244,6 +244,12 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					f.Set(reflect.ValueOf(uploadFile))
 				}
 			}
+			if ft.Anonymous && f.Type() != typeRequest {
+				e := r.unmarshal(f, request)
+				if e != nil {
+					return e
+				}
+			}
 		}
 	}
 	if len(validateError) > 0 {
