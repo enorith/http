@@ -84,7 +84,7 @@ func (c *cacheStruct) set(abs interface{}, b bool) {
 	c.mu.Unlock()
 }
 
-//RequestInjector inject request object, with validation
+// RequestInjector inject request object, with validation
 type RequestInjector struct {
 	runtime      container.Interface
 	request      contracts.RequestContract
@@ -191,18 +191,6 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 	typ := value.Type()
 	validateError := make(validation.ValidateError)
 
-	if validated, ok := value.Interface().(validation.WithValidation); ok {
-		rules := validated.Rules()
-		for attribute, rules := range rules {
-			errs := r.validator.PassesRules(request, attribute, rules)
-			if len(errs) > 0 {
-				validateError[attribute] = errs
-			}
-		}
-		if len(validateError) > 0 {
-			return validateError
-		}
-	}
 	for i := 0; i < value.NumField(); i++ {
 		f := value.Field(i)
 		ft := typ.Field(i)
@@ -252,6 +240,17 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 			}
 		}
 	}
+
+	if validated, ok := value.Interface().(validation.WithValidation); ok {
+		rules := validated.Rules()
+		for attribute, rules := range rules {
+			errs := r.validator.PassesRules(request, attribute, rules)
+			if len(errs) > 0 {
+				validateError[attribute] = errs
+			}
+		}
+	}
+
 	if len(validateError) > 0 {
 		return validateError
 	}
