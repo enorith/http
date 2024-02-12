@@ -117,7 +117,14 @@ func (v *Validator) PassesRules(req contracts.InputSource, attribute string, rul
 				}
 			}
 		} else if rr, ok := rl.(rule.Rule); ok {
-			message, success, skip := v.passRule(rr, input, attribute, fmt.Sprintf("rule %d", i))
+			var name string
+			if n, is := rl.(rule.Namer); is {
+				name = n.RoleName()
+			} else {
+				name = fmt.Sprintf("rule %d", i)
+			}
+
+			message, success, skip := v.passRule(rr, input, attribute, name)
 			if skip {
 				break
 			}

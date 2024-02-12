@@ -9,3 +9,7 @@ type Rule interface {
 type Messager interface {
 	Message() string
 }
+
+type Namer interface {
+	RoleName() string
+}
