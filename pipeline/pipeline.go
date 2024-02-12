@@ -6,7 +6,7 @@ import "github.com/enorith/http/contracts"
 type PipeHandler func(r contracts.RequestContract) contracts.ResponseContract
 
 //PipeFunc request middleware function
-type PipeFunc func(r contracts.RequestContract, next PipeHandler) contracts.ResponseContract
+type PipeFunc func(request contracts.RequestContract, next PipeHandler) contracts.ResponseContract
 
 //Pipeline is request pipeline prepare for request middleware
 type Pipeline struct {

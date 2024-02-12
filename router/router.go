@@ -5,7 +5,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
+	"github.com/enorith/http/errors"
 	"github.com/enorith/http/pipeline"
 )
 
@@ -32,6 +34,10 @@ var methodMap = map[int]string{
 
 //RouteHandler normal route handler
 type RouteHandler func(r contracts.RequestContract) contracts.ResponseContract
+
+var NotFoundHandler = func(r contracts.RequestContract) contracts.ResponseContract {
+	return content.ErrResponseFromError(errors.NotFound("Not Found"), 404, nil)
+}
 
 type partial struct {
 	segment []byte
@@ -216,7 +222,10 @@ func (r *router) MatchTree(request contracts.RequestContract) *ParamRoute {
 		}
 	}
 
-	return &ParamRoute{}
+	return &ParamRoute{
+		isValid: true,
+		handler: NotFoundHandler,
+	}
 }
 
 // Depracated MatchBytes, using MatchTree

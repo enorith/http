@@ -1,8 +1,12 @@
 package content
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"sync"
 
 	stdJson "encoding/json"
 
@@ -33,12 +37,18 @@ var (
 	}
 )
 
+var (
+	ErrInvalidRequest = errors.New("invalid request")
+)
+
 //Response http response
 type Response struct {
 	content    []byte
 	headers    map[string]string
 	statusCode int
 	handled    bool
+	cookies    []*http.Cookie
+	mu         sync.RWMutex
 }
 
 func (r *Response) SetStatusCode(code int) contracts.ResponseContract {
@@ -64,6 +74,10 @@ func (r *Response) SetHeaders(headers map[string]string) contracts.ResponseContr
 	return r
 }
 
+func (r *Response) Header(header string) string {
+	return r.headers[header]
+}
+
 //Content response body
 func (r *Response) Content() []byte {
 	return r.content
@@ -77,6 +91,27 @@ func (r *Response) Headers() map[string]string {
 //WithStatusCode status code
 func (r *Response) StatusCode() int {
 	return r.statusCode
+}
+
+func (r *Response) Cookies() []*http.Cookie {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.cookies
+}
+
+func (r *Response) SetCookie(cookie *http.Cookie) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.cookies = append(r.cookies, cookie)
+}
+
+func (r *Response) ClearCookies() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.cookies = make([]*http.Cookie, 0)
 }
 
 type ErrorResponse struct {
@@ -116,11 +151,47 @@ func (f *File) Path() string {
 	return f.path
 }
 
+type RedirectResponse struct {
+	*Response
+	url string
+}
+
+func (r *RedirectResponse) URL() string {
+	return r.url
+}
+
 func NewFileResponse(path string) *File {
 	return &File{
 		NewResponse(nil, nil, 200),
 		path,
 	}
+}
+
+type StreamResponse struct {
+	*Response
+	stream io.ReadCloser
+}
+
+func (sr *StreamResponse) Stream() io.ReadCloser {
+	return sr.stream
+}
+
+func NewStreamResponse(stream io.ReadCloser, code int) *StreamResponse {
+	return &StreamResponse{
+		NewResponse(nil, nil, code),
+		stream,
+	}
+}
+
+func NewDownloadResponse(stream io.ReadCloser, filename string) *StreamResponse {
+	sr := &StreamResponse{
+		NewResponse(nil, nil, 200),
+		stream,
+	}
+
+	sr.SetHeader("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	return sr
 }
 
 func NewResponse(content []byte, headers map[string]string, code int) *Response {
@@ -134,6 +205,8 @@ func NewResponse(content []byte, headers map[string]string, code int) *Response 
 		content:    content,
 		headers:    hs,
 		statusCode: code,
+		mu:         sync.RWMutex{},
+		cookies:    make([]*http.Cookie, 0),
 	}
 }
 
@@ -152,6 +225,7 @@ func ErrResponseFromError(e error, code int, headers map[string]string) *ErrorRe
 	var ex exception.Exception
 	if es, ok := e.(contracts.WithStatusCode); ok {
 		ex = exception.NewHttpExceptionFromError(e, es.StatusCode(), 0, headers)
+		code = es.StatusCode()
 		headers = nil
 	} else {
 		ex = exception.NewExceptionFromError(e, 500)
@@ -242,4 +316,19 @@ func (m JsonMessage) MarshalJSON() ([]byte, error) {
 
 func (m JsonMessage) StatusCode() int {
 	return int(m)
+}
+
+func Redirect(r contracts.RequestContract, url string, code int) contracts.ResponseContract {
+	if _, ok := r.(*FastHttpRequest); ok {
+		// fastR.Origin().Redirect(url, code)
+		return &RedirectResponse{
+			Response: NewHandledResponse(code),
+			url:      url,
+		}
+	} else if netR, ok := r.(*NetHttpRequest); ok {
+		http.Redirect(netR.OriginWriter(), netR.Origin(), url, code)
+		return NewHandledResponse()
+	}
+
+	return ErrResponseFromError(ErrInvalidRequest, 500, nil)
 }

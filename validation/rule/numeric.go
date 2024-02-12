@@ -7,6 +7,7 @@ type NumberType string
 const (
 	TypeInterger NumberType = "integer"
 	TypeFloat    NumberType = "float"
+	TypeInt      NumberType = "int"
 )
 
 type NumericInput struct {
@@ -14,6 +15,22 @@ type NumericInput struct {
 }
 
 func (ni NumericInput) Passes(input contracts.InputValue) (success bool, skipAll bool) {
+	switch ni.t {
+	case TypeInterger, TypeInt:
+		_, err := input.GetInt()
+		if err == nil {
+			return true, false
+		}
+	case TypeFloat:
+		_, err := input.GetFloat()
+		if err == nil {
+			return true, false
+		}
+	}
 
-	return true, false
+	return false, false
+}
+
+func Numeric(t NumberType) NumericInput {
+	return NumericInput{t}
 }

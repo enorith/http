@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -62,6 +63,10 @@ func (n *NetHttpRequest) GetPathBytes() []byte {
 
 func (n *NetHttpRequest) GetUri() []byte {
 	return []byte(n.origin.RequestURI)
+}
+
+func (n *NetHttpRequest) GetURL() *url.URL {
+	return n.origin.URL
 }
 
 func (n *NetHttpRequest) Get(key string) []byte {
@@ -125,7 +130,7 @@ func (n *NetHttpRequest) GetValue(key ...string) contracts.InputValue {
 func (n *NetHttpRequest) GetClientIp() string {
 	ip, _, _ := net.SplitHostPort(n.origin.RemoteAddr)
 
-	return ip
+	return ExchangeIpFromProxy(ip, n)
 }
 
 func (n *NetHttpRequest) RemoteAddr() string {
@@ -190,6 +195,16 @@ func (n *NetHttpRequest) SetHeaderString(key, value string) contracts.RequestCon
 	n.origin.Header.Set(key, value)
 
 	return n
+}
+
+func (n *NetHttpRequest) CookieByte(key string) []byte {
+	c, e := n.origin.Cookie(key)
+
+	if e == nil {
+		return []byte(c.Value)
+	}
+
+	return nil
 }
 
 func (n *NetHttpRequest) Authorization() []byte {

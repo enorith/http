@@ -77,6 +77,10 @@ func (j JsonError) StatusCode() int {
 	}
 	return j.statusCode
 }
+func (j *JsonError) Status(code int) *JsonError {
+	j.statusCode = code
+	return j
+}
 
 func (j JsonError) ResponseCode() int {
 	return j.code

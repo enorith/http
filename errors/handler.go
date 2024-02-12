@@ -37,20 +37,26 @@ type ErrorHandler interface {
 
 type StandardErrorHandler struct {
 	Debug    bool
-	Callback func(ed ErrorData)
+	Callback func(ed ErrorData, r contracts.RequestContract)
 }
 
 func (h *StandardErrorHandler) HandleError(e interface{}, r contracts.RequestContract, recovered bool) contracts.ResponseContract {
 
-	var headers map[string]string
+	headers := make(map[string]string)
 	if t, ok := e.(exception.HttpException); ok {
 		headers = t.Headers()
+	}
+
+	if r, ok := e.(contracts.ResponseContract); ok {
+		for k, v := range r.Headers() {
+			headers[k] = v
+		}
 	}
 
 	errorData := ParseError(e, h.Debug, recovered)
 	code := errorData.StatusCode
 	if h.Callback != nil {
-		h.Callback(errorData)
+		h.Callback(errorData, r)
 	}
 	if r.ExceptsJson() {
 		return content.JsonResponse(errorData, code, headers)
@@ -118,6 +124,8 @@ func ParseError(e interface{}, debug, recovered bool) ErrorData {
 		ex = t
 	} else if t, ok := e.(error); ok {
 		ex = exception.NewExceptionFromError(t, statusCode)
+	} else if t, ok := e.(*content.ErrorResponse); ok {
+		ex = t.E()
 	} else {
 		ex = exception.NewException("undefined exception", statusCode)
 	}

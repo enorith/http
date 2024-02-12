@@ -244,6 +244,12 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					f.Set(reflect.ValueOf(uploadFile))
 				}
 			}
+			if ft.Anonymous && f.Type() != typeRequest {
+				e := r.unmarshal(f, request)
+				if e != nil {
+					return e
+				}
+			}
 		}
 	}
 	if len(validateError) > 0 {
@@ -260,8 +266,9 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 	}
 	newF := reflect.New(field.Type())
 
-	if fv, ok := newF.Interface().(contracts.InputScanner); ok {
-		e := fv.Scan(data)
+	newInterface := newF.Interface()
+	if fv, ok := newInterface.(contracts.InputScanner); ok && len(data) > 0 {
+		e := fv.ScanInput(data)
 		if e == nil {
 			field.Set(newF.Elem())
 		}

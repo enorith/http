@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/enorith/container"
@@ -16,7 +15,6 @@ import (
 	"github.com/enorith/http/errors"
 	"github.com/enorith/http/pipeline"
 	"github.com/enorith/http/router"
-	"github.com/enorith/http/validation"
 	"github.com/valyala/fasthttp"
 )
 
@@ -86,6 +84,11 @@ func (k *Kernel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			for k, v := range headers {
 				w.Header().Set(k, v)
 			}
+			if cr, ok := resp.(contracts.WithResponseCookies); ok {
+				for _, c := range cr.Cookies() {
+					http.SetCookie(w, c)
+				}
+			}
 			if !resp.Handled() {
 				// call after set headers, before write body
 				w.WriteHeader(resp.StatusCode())
@@ -122,6 +125,9 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 		if k.tcpKeepAlive {
 			resp.SetHeader("Connection", "keep-alive")
 		}
+		if rr, ok := resp.(*content.RedirectResponse); ok {
+			ctx.Redirect(rr.URL(), rr.StatusCode())
+		}
 
 		ctx.Response.SetStatusCode(resp.StatusCode())
 		if resp.Headers() != nil {
@@ -129,10 +135,19 @@ func (k *Kernel) FastHttpHandler(ctx *fasthttp.RequestCtx) {
 				ctx.Response.Header.Set(k, v)
 			}
 		}
+		if cr, ok := resp.(contracts.WithResponseCookies); ok {
+			for _, c := range cr.Cookies() {
+				ctx.Response.Header.Add("Set-Cookie", c.String())
+			}
+		}
 		ctx.Response.Header.Set("Server", fmt.Sprintf("enorith/%s (fasthttp)", Version))
 		if tp, ok := resp.(contracts.TemplateResponseContract); ok {
 			temp := tp.Template()
 			temp.Execute(ctx, tp.TemplateData())
+		} else if sr, ok := resp.(*content.StreamResponse); ok {
+			strem := sr.Stream()
+			defer strem.Close()
+			io.Copy(ctx, strem)
 		} else if fp, ok := resp.(*content.File); ok {
 			fasthttp.ServeFile(ctx, fp.Path())
 		} else if wp, ok := resp.(io.WriterTo); ok {
@@ -186,13 +201,13 @@ func (k *Kernel) Handle(r contracts.RequestContract) (resp contracts.ResponseCon
 		}
 	}()
 	ioc := k.cr(r)
-	k.resolver.ResolveRequest(r, ioc)
 	r.SetContainer(ioc)
+	k.resolver.ResolveRequest(r, ioc)
 
 	resp = k.SendRequestToRouter(r)
 
 	if t, ok := resp.(*content.ErrorResponse); ok {
-		resp = k.errorHandler.HandleError(t.E(), r, false)
+		resp = k.errorHandler.HandleError(t, r, false)
 	}
 
 	if t, ok := resp.(exception.Exception); ok {
@@ -218,6 +233,8 @@ func (k *Kernel) SendRequestToRouter(r contracts.RequestContract) contracts.Resp
 	}
 
 	ioc := r.GetContainer()
+	ioc.Bind(&router.ParamRoute{}, p, true)
+
 	mid := p.Middleware()
 	for _, v := range mid {
 		if ms, exists := k.middlewareGroup[v]; exists {
@@ -253,25 +270,4 @@ func NewKernel(cr ContainerRegister, debug bool) *Kernel {
 	k.middleware = []pipeline.RequestMiddleware{}
 	k.middlewareGroup = make(map[string][]pipeline.RequestMiddleware)
 	return k
-}
-
-type KernelRequestResolver struct {
-}
-
-func (rr KernelRequestResolver) ResolveRequest(r contracts.RequestContract, runtime container.Interface) {
-	runtime.RegisterSingleton(r)
-
-	runtime.Singleton(reflect.TypeOf((*contracts.RequestContract)(nil)).Elem(), r)
-
-	runtime.BindFunc(&content.Request{}, func(c container.Interface) (interface{}, error) {
-
-		return &content.Request{RequestContract: r}, nil
-	}, true)
-
-	runtime.BindFunc(content.Request{}, func(c container.Interface) (interface{}, error) {
-
-		return content.Request{RequestContract: r}, nil
-	}, true)
-
-	runtime.WithInjector(&RequestInjector{runtime: runtime, request: r, validator: validation.DefaultValidator})
 }
