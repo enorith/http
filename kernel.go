@@ -18,7 +18,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const Version = "v1.1.13"
+const Version = "v1.2.0"
 
 type handlerType int
 

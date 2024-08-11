@@ -92,16 +92,6 @@ func (r *FastHttpRequest) File(key string) (contracts.UploadFile, error) {
 	return &uploadFile{header: h}, nil
 }
 func (r *FastHttpRequest) Get(key string) []byte {
-	query := r.origin.QueryArgs()
-	if query.Has(key) {
-		return query.Peek(key)
-	}
-
-	post := r.origin.PostArgs()
-	if post.Has(key) {
-		return post.Peek(key)
-	}
-
 	form := r.origin.FormValue(key)
 	if len(form) > 0 {
 		return form

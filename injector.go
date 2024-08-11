@@ -15,6 +15,7 @@ import (
 	"github.com/enorith/http/validation"
 	"github.com/enorith/supports/byt"
 	"github.com/enorith/supports/reflection"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var cs cacheStruct
@@ -203,7 +204,7 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 				}
 				e := r.unmarshalField(f, request.Get(input))
 				if e != nil {
-					return e
+					return fmt.Errorf("[request injection] unmarshal request field \"%s\" error, check your type definition: %s", input, e.Error())
 				}
 			} else if param := ft.Tag.Get("param"); param != "" {
 				errs := r.passValidate(ft.Tag, request, param)
@@ -258,6 +259,10 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 }
 
 func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
 	v := field.Interface()
 	if _, ok := v.([]byte); ok {
 		field.SetBytes(data)
@@ -281,15 +286,23 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 	case reflect.Bool:
 		in, _ := byt.ToBool(data)
 		field.SetBool(in)
-	case reflect.Int, reflect.Int32, reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		in, _ := byt.ToInt64(data)
 		field.SetInt(in)
-	case reflect.Uint, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		in, _ := byt.ToUint64(data)
 		field.SetUint(in)
 	case reflect.Float32, reflect.Float64:
 		in, _ := byt.ToFloat64(data)
 		field.SetFloat(in)
+	case reflect.Map:
+		newM := reflect.New(field.Type())
+
+		e := jsoniter.Unmarshal(data, newM.Interface())
+		if e != nil {
+			return e
+		}
+		field.Set(reflect.Indirect(newM))
 	case reflect.Struct:
 		newF := reflect.New(field.Type())
 		newV := reflect.Indirect(newF)
@@ -300,7 +313,6 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		}
 		field.Set(newV)
 	case reflect.Ptr:
-
 		newF := reflect.New(field.Type().Elem())
 		newV := reflect.Indirect(newF)
 

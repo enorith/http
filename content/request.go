@@ -124,3 +124,87 @@ func GetJsonValue(r contracts.RequestContract, key string) []byte {
 type Request struct {
 	contracts.RequestContract
 }
+
+type MapInput struct {
+	data map[string]interface{}
+	raw  []byte
+}
+
+func (mi *MapInput) GetMap() map[string]interface{} {
+	return mi.data
+}
+
+func (mi *MapInput) ScanInput(data []byte) error {
+	mi.raw = data
+	return jsoniter.Unmarshal(mi.raw, &mi.data)
+}
+
+func (mi MapInput) MarshalJSON() ([]byte, error) {
+	return mi.raw, nil
+}
+
+func (mi MapInput) Get(key string, v interface{}) error {
+	valRow, valType, _, e := jsonparser.Get(mi.raw, key)
+
+	if e != nil {
+		return e
+	}
+
+	if b, ok := v.(*[]byte); ok {
+		*b = valRow
+		return nil
+	}
+
+	switch valType {
+	case jsonparser.String:
+		if sp, ok := v.(*string); ok {
+			*sp = string(valRow)
+		}
+	case jsonparser.Number:
+		switch vp := v.(type) {
+		case *float64:
+			*vp, _ = strconv.ParseFloat(string(valRow), 64)
+		case *float32:
+			fl, _ := strconv.ParseFloat(string(valRow), 32)
+			*vp = float32(fl)
+		case *int64:
+			*vp, _ = strconv.ParseInt(string(valRow), 10, 64)
+		case *int:
+			*vp, _ = strconv.Atoi(string(valRow))
+		case *int32:
+			i, _ := strconv.ParseInt(string(valRow), 10, 32)
+			*vp = int32(i)
+		case *int16:
+			i, _ := strconv.ParseInt(string(valRow), 10, 16)
+			*vp = int16(i)
+		case *int8:
+			i, _ := strconv.ParseInt(string(valRow), 10, 8)
+			*vp = int8(i)
+		case *uint64:
+			*vp, _ = strconv.ParseUint(string(valRow), 10, 64)
+		case *uint:
+			ui, _ := strconv.ParseUint(string(valRow), 10, 64)
+			*vp = uint(ui)
+		case *uint32:
+			ui, _ := strconv.ParseUint(string(valRow), 10, 32)
+			*vp = uint32(ui)
+		case *uint16:
+			ui, _ := strconv.ParseUint(string(valRow), 10, 16)
+			*vp = uint16(ui)
+		case *uint8:
+			ui, _ := strconv.ParseUint(string(valRow), 10, 8)
+			*vp = uint8(ui)
+		}
+
+	case jsonparser.Boolean:
+		if sp, ok := v.(*bool); ok {
+			*sp, _ = strconv.ParseBool(string(valRow))
+		}
+	case jsonparser.Null, jsonparser.NotExist, jsonparser.Unknown:
+		return nil
+	default:
+		return jsoniter.Unmarshal(valRow, v)
+	}
+
+	return nil
+}
