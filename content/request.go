@@ -143,6 +143,10 @@ func (mi MapInput) MarshalJSON() ([]byte, error) {
 	return mi.raw, nil
 }
 
+func (mi MapInput) Unmarshal(to interface{}) error {
+	return json.Unmarshal(mi.raw, to)
+}
+
 func (mi MapInput) Get(key string, v interface{}) error {
 	valRow, valType, _, e := jsonparser.Get(mi.raw, key)
 
