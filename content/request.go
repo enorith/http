@@ -1,6 +1,7 @@
 package content
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -134,6 +135,10 @@ func (mi *MapInput) GetMap() map[string]interface{} {
 	return mi.data
 }
 
+func (mi *MapInput) GetRaw() []byte {
+	return mi.raw
+}
+
 func (mi *MapInput) ScanInput(data []byte) error {
 	mi.raw = data
 	return jsoniter.Unmarshal(mi.raw, &mi.data)
@@ -211,4 +216,38 @@ func (mi MapInput) Get(key string, v interface{}) error {
 	}
 
 	return nil
+}
+
+type JsonInputHandler func(j JsonInput)
+
+type JsonInput []byte
+
+func (j JsonInput) Get(key string) []byte {
+	value, _, _, _ := jsonparser.Get(j, key)
+
+	return value
+}
+
+func (j JsonInput) ParamBytes(key string) []byte {
+	return nil
+}
+
+func (j JsonInput) File(key string) (contracts.UploadFile, error) {
+	return nil, errors.New("jsonInput does not implement func File(key string) (content.UploadFile, error)")
+}
+
+func (j JsonInput) Each(h JsonInputHandler) error {
+	_, e := jsonparser.ArrayEach(j, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		h(value)
+	})
+
+	return e
+}
+
+func (j JsonInput) GetValue(key ...string) contracts.InputValue {
+	if len(key) > 0 {
+		return j.Get(key[0])
+	}
+
+	return contracts.InputValue(j)
 }

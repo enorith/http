@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/buger/jsonparser"
 	"github.com/enorith/container"
 	"github.com/enorith/http/content"
 	"github.com/enorith/http/contracts"
@@ -31,40 +30,6 @@ var (
 var (
 	uploadFileType = reflect.TypeOf((*contracts.UploadFile)(nil)).Elem()
 )
-
-type jsonInputHandler func(j jsonInput)
-
-type jsonInput []byte
-
-func (j jsonInput) Get(key string) []byte {
-	value, _, _, _ := jsonparser.Get(j, key)
-
-	return value
-}
-
-func (j jsonInput) ParamBytes(key string) []byte {
-	return nil
-}
-
-func (j jsonInput) File(key string) (contracts.UploadFile, error) {
-	return nil, errors.New("jsonInput does not implement func File(key string) (content.UploadFile, error)")
-}
-
-func (j jsonInput) Each(h jsonInputHandler) error {
-	_, e := jsonparser.ArrayEach(j, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		h(value)
-	})
-
-	return e
-}
-
-func (j jsonInput) GetValue(key ...string) contracts.InputValue {
-	if len(key) > 0 {
-		return j.Get(key[0])
-	}
-
-	return contracts.InputValue(j)
-}
 
 type cacheStruct struct {
 	cache map[interface{}]bool
@@ -307,7 +272,7 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		newF := reflect.New(field.Type())
 		newV := reflect.Indirect(newF)
 
-		e := r.unmarshal(newV, jsonInput(data))
+		e := r.unmarshal(newV, content.JsonInput(data))
 		if e != nil {
 			return e
 		}
@@ -316,7 +281,7 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		newF := reflect.New(field.Type().Elem())
 		newV := reflect.Indirect(newF)
 
-		e := r.unmarshal(newV, jsonInput(data))
+		e := r.unmarshal(newV, content.JsonInput(data))
 		if e != nil {
 			return e
 		}
@@ -331,7 +296,7 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 
 		var ivs []reflect.Value
 
-		jsonInput(data).Each(func(j jsonInput) {
+		content.JsonInput(data).Each(func(j content.JsonInput) {
 			itv := reflect.New(it)
 			itve := reflect.Indirect(itv)
 			r.unmarshalField(itve, j)
