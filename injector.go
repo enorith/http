@@ -161,7 +161,12 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 		f := value.Field(i)
 		ft := typ.Field(i)
 		if f.IsZero() {
-			if input := ft.Tag.Get("input"); input != "" {
+			input := ft.Tag.Get("input")
+			if input == "" {
+				input = ft.Tag.Get("json")
+			}
+
+			if input != "" && input != "-" {
 				errs := r.passValidate(ft.Tag, request, input)
 				if len(errs) > 0 {
 					validateError[input] = errs
