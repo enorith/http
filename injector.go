@@ -104,6 +104,12 @@ func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (refle
 		}
 
 		if jsonReqIndex > -1 {
+			validateError := r.validate(value, r.request)
+
+			if len(validateError) > 0 {
+				return value, validateError
+			}
+
 			e := r.request.Unmarshal(value.Interface())
 
 			return value, e
@@ -180,7 +186,7 @@ func (r *RequestInjector) jsonReqIndex(abs interface{}) int {
 
 func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.InputSource) error {
 	typ := value.Type()
-	validateError := make(validation.ValidateError)
+	validateError := r.validate(value, request)
 
 	for i := 0; i < value.NumField(); i++ {
 		f := value.Field(i)
@@ -237,6 +243,16 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 		}
 	}
 
+	if len(validateError) > 0 {
+		return validateError
+	}
+
+	return nil
+}
+
+func (r *RequestInjector) validate(value reflect.Value, request contracts.InputSource) validation.ValidateError {
+	validateError := make(validation.ValidateError)
+
 	if validated, ok := value.Interface().(validation.WithValidation); ok {
 		rules := validated.Rules()
 		for attribute, rules := range rules {
@@ -247,10 +263,7 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 		}
 	}
 
-	if len(validateError) > 0 {
-		return validateError
-	}
-	return nil
+	return validateError
 }
 
 func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error {
