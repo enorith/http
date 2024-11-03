@@ -125,6 +125,9 @@ func GetJsonValue(r contracts.RequestContract, key string) []byte {
 type Request struct {
 	contracts.RequestContract
 }
+type JsonRequest struct {
+	contracts.RequestContract
+}
 
 type MapInput struct {
 	data map[string]interface{}
@@ -218,7 +221,7 @@ func (mi MapInput) Get(key string, v interface{}) error {
 	return nil
 }
 
-type JsonInputHandler func(j JsonInput)
+type JsonInputHandler func(j JsonInput) error
 
 type JsonInput []byte
 

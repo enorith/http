@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -21,6 +22,7 @@ var cs cacheStruct
 
 var (
 	typeRequest,
+	typeJsonRequest,
 	typeParamInt64,
 	typeParamString,
 	typeParamInt,
@@ -52,17 +54,17 @@ func (c *cacheStruct) set(abs interface{}, b bool) {
 
 // RequestInjector inject request object, with validation
 type RequestInjector struct {
-	runtime      container.Interface
-	request      contracts.RequestContract
-	validator    *validation.Validator
-	paramIndex   int
-	requestIndex int
+	runtime    container.Interface
+	request    contracts.RequestContract
+	validator  *validation.Validator
+	paramIndex int
 }
 
 func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (reflect.Value, error) {
 	var e error
 	defer func() {
 		if x := recover(); x != nil {
+			fmt.Println("[request injection] panic: \n" + string(debug.Stack()))
 			value = reflect.Value{}
 			if err, ok := x.(error); ok {
 				e = err
@@ -75,17 +77,37 @@ func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (refle
 	}()
 	ts := reflection.StructType(abs)
 
+	reqIndex := r.reqIndex(abs)
+	jsonReqIndex := r.jsonReqIndex(abs)
+
 	//value = last
-	if r.isRequest(abs) {
-		// dependency injection sub struct of content.Request
-		tf := ts.Field(r.requestIndex).Type
-		instanceReq, err := r.runtime.Instance(tf)
-		if err != nil {
-			return value, err
-		}
+	if reqIndex > -1 || jsonReqIndex > -1 {
 		indVal := reflect.Indirect(value)
 
-		indVal.Field(r.requestIndex).Set(instanceReq)
+		if reqIndex > -1 {
+			// dependency injection sub struct of content.Request
+			tf := ts.Field(reqIndex).Type
+			instanceReq, err := r.runtime.Instance(tf)
+			if err != nil {
+				return value, err
+			}
+
+			indVal.Field(reqIndex).Set(instanceReq)
+		} else if jsonReqIndex > -1 {
+			tf := ts.Field(jsonReqIndex).Type
+			instanceReq, err := r.runtime.Instance(tf)
+			if err != nil {
+				return value, err
+			}
+
+			indVal.Field(jsonReqIndex).Set(instanceReq)
+		}
+
+		if jsonReqIndex > -1 {
+			e := r.request.Unmarshal(value.Interface())
+
+			return value, e
+		}
 
 		e := r.unmarshal(indVal, r.request)
 		if e != nil {
@@ -136,7 +158,7 @@ func (r *RequestInjector) When(abs interface{}) bool {
 	}
 
 	// dependency is sub struct of content.Request
-	is := r.isParam(abs) || r.isRequest(abs)
+	is := r.isParam(abs) || r.reqIndex(abs) > -1 || r.jsonReqIndex(abs) > -1
 	cs.set(abs, is)
 
 	return is
@@ -148,9 +170,12 @@ func (r *RequestInjector) isParam(abs interface{}) bool {
 	return ts == typeParamInt || ts == typeParamString || ts == typeParamInt64 || ts == typeParamUnit
 }
 
-func (r *RequestInjector) isRequest(abs interface{}) bool {
-	r.requestIndex = reflection.SubStructOf(abs, typeRequest)
-	return r.requestIndex > -1
+func (r *RequestInjector) reqIndex(abs interface{}) int {
+	return reflection.SubStructOf(abs, typeRequest)
+}
+
+func (r *RequestInjector) jsonReqIndex(abs interface{}) int {
+	return reflection.SubStructOf(abs, typeJsonRequest)
 }
 
 func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.InputSource) error {
@@ -301,12 +326,19 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 
 		var ivs []reflect.Value
 
-		content.JsonInput(data).Each(func(j content.JsonInput) {
+		if e := content.JsonInput(data).Each(func(j content.JsonInput) error {
 			itv := reflect.New(it)
 			itve := reflect.Indirect(itv)
-			r.unmarshalField(itve, j)
+			if e := r.unmarshalField(itve, j); e != nil {
+				return e
+			}
 			ivs = append(ivs, itve)
-		})
+
+			return nil
+		}); e != nil {
+			return e
+		}
+
 		l := len(ivs)
 		slice := reflect.MakeSlice(field.Type(), l, l)
 		for index, v := range ivs {
@@ -334,5 +366,6 @@ func init() {
 	typeParamUnit = reflection.StructType(content.ParamUint64(42))
 	typeParamInt = reflection.StructType(content.ParamInt(42))
 	typeRequest = reflection.StructType(content.Request{})
+	typeJsonRequest = reflection.StructType(content.JsonRequest{})
 	cs = cacheStruct{cache: map[interface{}]bool{}, mu: sync.RWMutex{}}
 }
