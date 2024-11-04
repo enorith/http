@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
@@ -278,7 +279,7 @@ func (r *RequestInjector) validate(value reflect.Value, request contracts.InputS
 }
 
 func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error {
-	if len(data) == 0 {
+	if len(data) == 0 || bytes.Equal(data, []byte("null")) {
 		return nil
 	}
 
@@ -360,6 +361,7 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 
 			return nil
 		}); e != nil {
+
 			return e
 		}
 

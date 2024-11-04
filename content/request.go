@@ -1,6 +1,7 @@
 package content
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -240,6 +241,10 @@ func (j JsonInput) File(key string) (contracts.UploadFile, error) {
 }
 
 func (j JsonInput) Each(h JsonInputHandler) error {
+	if j == nil || bytes.Equal(j, []byte("null")) {
+		return nil
+	}
+
 	_, e := jsonparser.ArrayEach(j, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		h(value)
 	})
