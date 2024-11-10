@@ -209,7 +209,7 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					validateError[input] = errs
 					continue
 				}
-				e := r.unmarshalField(f, request.Get(input))
+				e := r.unmarshalField(f, request.Get(input), ft.Type)
 				if e != nil {
 					return fmt.Errorf("[request injection] unmarshal request field \"%s\" error, check your type definition: %s", input, e.Error())
 				}
@@ -220,7 +220,7 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					continue
 				}
 				if rc, ok := request.(contracts.RequestContract); ok {
-					e := r.unmarshalField(f, rc.ParamBytes(param))
+					e := r.unmarshalField(f, rc.ParamBytes(param), ft.Type)
 					if e != nil {
 						return e
 					}
@@ -278,29 +278,18 @@ func (r *RequestInjector) validate(value reflect.Value, request contracts.InputS
 	return validateError
 }
 
-func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error {
+func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte, typ reflect.Type) error {
 	if len(data) == 0 || bytes.Equal(data, []byte("null")) {
 		return nil
 	}
 
-	v := field.Interface()
-	if _, ok := v.([]byte); ok {
-		field.SetBytes(data)
-		return nil
-	}
-	newF := reflect.New(field.Type())
+	// v := field.Interface()
+	// if _, ok := v.([]byte); ok {
+	// 	field.SetBytes(data)
+	// 	return nil
+	// }
 
-	newInterface := newF.Interface()
-	if fv, ok := newInterface.(contracts.InputScanner); ok && len(data) > 0 {
-		e := fv.ScanInput(data)
-		if e == nil {
-			field.Set(newF.Elem())
-		}
-
-		return e
-	}
-
-	switch field.Kind() {
+	switch typ.Kind() {
 	case reflect.String:
 		field.SetString(byt.ToString(data))
 	case reflect.Bool:
@@ -324,37 +313,52 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		}
 		field.Set(reflect.Indirect(newM))
 	case reflect.Struct:
-		newF := reflect.New(field.Type())
-		newV := reflect.Indirect(newF)
+		newInterface := field.Interface()
+		if fv, ok := newInterface.(contracts.InputScanner); ok && len(data) > 0 {
+			return fv.ScanInput(data)
+		}
 
-		e := r.unmarshal(newV, content.JsonInput(data))
+		e := r.unmarshal(field, content.JsonInput(data))
 		if e != nil {
 			return e
 		}
-		field.Set(newV)
+		// field.Set(newV)
 	case reflect.Ptr:
-		newF := reflect.New(field.Type().Elem())
+		ele := typ.Elem()
+		newF := reflect.New(ele)
 		newV := reflect.Indirect(newF)
-
-		e := r.unmarshal(newV, content.JsonInput(data))
-		if e != nil {
-			return e
+		if ele.Kind() == reflect.Struct {
+			e := r.unmarshal(newV, content.JsonInput(data))
+			if e != nil {
+				return e
+			}
+			field.Set(newF)
+		} else {
+			e := r.unmarshalField(newV, data, typ.Elem())
+			if e != nil {
+				return e
+			}
+			field.Set(newF)
 		}
-		field.Set(newF)
 	case reflect.Slice:
-		it := field.Type().Elem()
-		if it.Kind() == reflect.Uint8 {
-			// []uint8 as []byte
+		v := field.Interface()
+		if _, ok := v.([]byte); ok {
 			field.SetBytes(data)
 			return nil
 		}
+		it := field.Type().Elem()
+		// if it.Kind() == reflect.Uint8 {
+		// 	// []uint8 as []byte
+		// 	field.SetBytes(data)
+		// 	return nil
+		// }
 
 		var ivs []reflect.Value
 
 		if e := content.JsonInput(data).Each(func(j content.JsonInput) error {
 			itv := reflect.New(it)
 			itve := reflect.Indirect(itv)
-			if e := r.unmarshalField(itve, j); e != nil {
+			if e := r.unmarshalField(itve, j, it); e != nil {
 				return e
 			}
 			ivs = append(ivs, itve)
