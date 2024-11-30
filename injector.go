@@ -287,9 +287,12 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte, typ r
 	if is, ok := v.(contracts.InputScanner); ok {
 		return is.ScanInput(data)
 	}
-
-	if _, ok := v.([]byte); ok {
-		field.SetBytes(data)
+	newV := reflect.New(typ)
+	if is, ok := newV.Interface().(contracts.InputScanner); ok {
+		if e := is.ScanInput(data); e != nil {
+			return e
+		}
+		field.Set(reflect.Indirect(newV))
 		return nil
 	}
 
@@ -340,12 +343,14 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte, typ r
 			field.Set(newF)
 		}
 	case reflect.Slice:
-		v := field.Interface()
-		if _, ok := v.([]byte); ok {
+		it := field.Type().Elem()
+		iv := reflect.Indirect(reflect.New(it)).Interface()
+		if _, ok := iv.(byte); ok {
 			field.SetBytes(data)
+
 			return nil
 		}
-		it := field.Type().Elem()
+
 		// if it.Kind() == reflect.Uint8 {
 		// 	// []uint8 as []byte
 		// 	field.SetBytes(data)
