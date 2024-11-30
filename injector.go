@@ -283,11 +283,15 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte, typ r
 		return nil
 	}
 
-	// v := field.Interface()
-	// if _, ok := v.([]byte); ok {
-	// 	field.SetBytes(data)
-	// 	return nil
-	// }
+	v := field.Interface()
+	if is, ok := v.(contracts.InputScanner); ok {
+		return is.ScanInput(data)
+	}
+
+	if _, ok := v.([]byte); ok {
+		field.SetBytes(data)
+		return nil
+	}
 
 	switch typ.Kind() {
 	case reflect.String:
@@ -313,11 +317,6 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte, typ r
 		}
 		field.Set(reflect.Indirect(newM))
 	case reflect.Struct:
-		newInterface := field.Interface()
-		if fv, ok := newInterface.(contracts.InputScanner); ok && len(data) > 0 {
-			return fv.ScanInput(data)
-		}
-
 		e := r.unmarshal(field, content.JsonInput(data))
 		if e != nil {
 			return e
