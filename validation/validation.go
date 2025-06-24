@@ -2,7 +2,6 @@ package validation
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -187,7 +186,7 @@ func init() {
 
 	Register("numeric", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
 		if len(args) == 0 {
-			return nil, errors.New("numeric rule require a numeric type, usage: validate:\"numeric:integer\"")
+			return nil, fmt.Errorf("numeric rule require a numeric type, usage: validate:\"numeric:integer\", attribute [%s]", attribute)
 		}
 
 		return rule.Numeric(rule.NumberType(args[0])), nil
@@ -203,7 +202,7 @@ func init() {
 
 	Register("required_if", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
 		if len(args) == 0 {
-			return nil, errors.New("required_if rule require a condition, usage: validate:\"required_if:field,value\"")
+			return nil, fmt.Errorf("required_if rule require a condition, usage: validate:\"required_if:field,value\", attribute [%s]", attribute)
 		}
 		fv := r.Get(args[0])
 
@@ -218,7 +217,7 @@ func init() {
 
 	Register("required_with", func(attribute string, r contracts.InputSource, args ...string) (rule.Rule, error) {
 		if len(args) == 0 {
-			return nil, errors.New("required_with rule require a condition, usage: validate:\"required_with:field1,field2\"")
+			return nil, fmt.Errorf("required_with rule require a condition, usage: validate:\"required_with:field1,field2\", attribute [%s]", attribute)
 		}
 
 		return rule.RequiredIf(func() bool {
