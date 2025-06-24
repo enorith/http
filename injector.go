@@ -1,9 +1,11 @@
 package http
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -21,6 +23,7 @@ var cs cacheStruct
 
 var (
 	typeRequest,
+	typeJsonRequest,
 	typeParamInt64,
 	typeParamString,
 	typeParamInt,
@@ -52,17 +55,17 @@ func (c *cacheStruct) set(abs interface{}, b bool) {
 
 // RequestInjector inject request object, with validation
 type RequestInjector struct {
-	runtime      container.Interface
-	request      contracts.RequestContract
-	validator    *validation.Validator
-	paramIndex   int
-	requestIndex int
+	runtime    container.Interface
+	request    contracts.RequestContract
+	validator  *validation.Validator
+	paramIndex int
 }
 
 func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (reflect.Value, error) {
 	var e error
 	defer func() {
 		if x := recover(); x != nil {
+			fmt.Println("[request injection] panic: \n" + string(debug.Stack()))
 			value = reflect.Value{}
 			if err, ok := x.(error); ok {
 				e = err
@@ -75,17 +78,48 @@ func (r *RequestInjector) Injection(abs interface{}, value reflect.Value) (refle
 	}()
 	ts := reflection.StructType(abs)
 
+	reqIndex := r.reqIndex(abs)
+	jsonReqIndex := r.jsonReqIndex(abs)
+
 	//value = last
-	if r.isRequest(abs) {
-		// dependency injection sub struct of content.Request
-		tf := ts.Field(r.requestIndex).Type
-		instanceReq, err := r.runtime.Instance(tf)
-		if err != nil {
-			return value, err
-		}
+	if reqIndex > -1 || jsonReqIndex > -1 {
 		indVal := reflect.Indirect(value)
 
-		indVal.Field(r.requestIndex).Set(instanceReq)
+		if reqIndex > -1 {
+			// dependency injection sub struct of content.Request
+			tf := ts.Field(reqIndex).Type
+			instanceReq, err := r.runtime.Instance(tf)
+			if err != nil {
+				return value, err
+			}
+
+			indVal.Field(reqIndex).Set(instanceReq)
+		} else if jsonReqIndex > -1 {
+			tf := ts.Field(jsonReqIndex).Type
+			instanceReq, err := r.runtime.Instance(tf)
+			if err != nil {
+				return value, err
+			}
+
+			indVal.Field(jsonReqIndex).Set(instanceReq)
+		}
+
+		if jsonReqIndex > -1 {
+
+			e := r.request.Unmarshal(value.Interface())
+
+			if e != nil {
+				return value, e
+			}
+
+			validateError := r.validate(value, r.request)
+
+			if len(validateError) > 0 {
+				return value, validateError
+			}
+
+			return value, e
+		}
 
 		e := r.unmarshal(indVal, r.request)
 		if e != nil {
@@ -136,7 +170,7 @@ func (r *RequestInjector) When(abs interface{}) bool {
 	}
 
 	// dependency is sub struct of content.Request
-	is := r.isParam(abs) || r.isRequest(abs)
+	is := r.isParam(abs) || r.reqIndex(abs) > -1 || r.jsonReqIndex(abs) > -1
 	cs.set(abs, is)
 
 	return is
@@ -148,9 +182,12 @@ func (r *RequestInjector) isParam(abs interface{}) bool {
 	return ts == typeParamInt || ts == typeParamString || ts == typeParamInt64 || ts == typeParamUnit
 }
 
-func (r *RequestInjector) isRequest(abs interface{}) bool {
-	r.requestIndex = reflection.SubStructOf(abs, typeRequest)
-	return r.requestIndex > -1
+func (r *RequestInjector) reqIndex(abs interface{}) int {
+	return reflection.SubStructOf(abs, typeRequest)
+}
+
+func (r *RequestInjector) jsonReqIndex(abs interface{}) int {
+	return reflection.SubStructOf(abs, typeJsonRequest)
 }
 
 func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.InputSource) error {
@@ -172,7 +209,7 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					validateError[input] = errs
 					continue
 				}
-				e := r.unmarshalField(f, request.Get(input))
+				e := r.unmarshalField(f, request.Get(input), ft.Type)
 				if e != nil {
 					return fmt.Errorf("[request injection] unmarshal request field \"%s\" error, check your type definition: %s", input, e.Error())
 				}
@@ -183,7 +220,7 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 					continue
 				}
 				if rc, ok := request.(contracts.RequestContract); ok {
-					e := r.unmarshalField(f, rc.ParamBytes(param))
+					e := r.unmarshalField(f, rc.ParamBytes(param), ft.Type)
 					if e != nil {
 						return e
 					}
@@ -212,6 +249,22 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 		}
 	}
 
+	ve := r.validate(value, request)
+
+	for k, v := range ve {
+		validateError[k] = v
+	}
+
+	if len(validateError) > 0 {
+		return validateError
+	}
+
+	return nil
+}
+
+func (r *RequestInjector) validate(value reflect.Value, request contracts.InputSource) validation.ValidateError {
+	validateError := make(validation.ValidateError)
+
 	if validated, ok := value.Interface().(validation.WithValidation); ok {
 		rules := validated.Rules()
 		for attribute, rules := range rules {
@@ -222,35 +275,28 @@ func (r *RequestInjector) unmarshal(value reflect.Value, request contracts.Input
 		}
 	}
 
-	if len(validateError) > 0 {
-		return validateError
-	}
-	return nil
+	return validateError
 }
 
-func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error {
-	if len(data) == 0 {
+func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte, typ reflect.Type) error {
+	if len(data) == 0 || bytes.Equal(data, []byte("null")) {
 		return nil
 	}
 
 	v := field.Interface()
-	if _, ok := v.([]byte); ok {
-		field.SetBytes(data)
+	if is, ok := v.(contracts.InputScanner); ok {
+		return is.ScanInput(data)
+	}
+	newV := reflect.New(typ)
+	if is, ok := newV.Interface().(contracts.InputScanner); ok {
+		if e := is.ScanInput(data); e != nil {
+			return e
+		}
+		field.Set(reflect.Indirect(newV))
 		return nil
 	}
-	newF := reflect.New(field.Type())
 
-	newInterface := newF.Interface()
-	if fv, ok := newInterface.(contracts.InputScanner); ok && len(data) > 0 {
-		e := fv.ScanInput(data)
-		if e == nil {
-			field.Set(newF.Elem())
-		}
-
-		return e
-	}
-
-	switch field.Kind() {
+	switch typ.Kind() {
 	case reflect.String:
 		field.SetString(byt.ToString(data))
 	case reflect.Bool:
@@ -274,39 +320,59 @@ func (r *RequestInjector) unmarshalField(field reflect.Value, data []byte) error
 		}
 		field.Set(reflect.Indirect(newM))
 	case reflect.Struct:
-		newF := reflect.New(field.Type())
-		newV := reflect.Indirect(newF)
-
-		e := r.unmarshal(newV, content.JsonInput(data))
+		e := r.unmarshal(field, content.JsonInput(data))
 		if e != nil {
 			return e
 		}
-		field.Set(newV)
+		// field.Set(newV)
 	case reflect.Ptr:
-		newF := reflect.New(field.Type().Elem())
+		ele := typ.Elem()
+		newF := reflect.New(ele)
 		newV := reflect.Indirect(newF)
-
-		e := r.unmarshal(newV, content.JsonInput(data))
-		if e != nil {
-			return e
+		if ele.Kind() == reflect.Struct {
+			e := r.unmarshal(newV, content.JsonInput(data))
+			if e != nil {
+				return e
+			}
+			field.Set(newF)
+		} else {
+			e := r.unmarshalField(newV, data, typ.Elem())
+			if e != nil {
+				return e
+			}
+			field.Set(newF)
 		}
-		field.Set(newF)
 	case reflect.Slice:
 		it := field.Type().Elem()
-		if it.Kind() == reflect.Uint8 {
-			// []uint8 as []byte
+		iv := reflect.Indirect(reflect.New(it)).Interface()
+		if _, ok := iv.(byte); ok {
 			field.SetBytes(data)
+
 			return nil
 		}
 
+		// if it.Kind() == reflect.Uint8 {
+		// 	// []uint8 as []byte
+		// 	field.SetBytes(data)
+		// 	return nil
+		// }
+
 		var ivs []reflect.Value
 
-		content.JsonInput(data).Each(func(j content.JsonInput) {
+		if e := content.JsonInput(data).Each(func(j content.JsonInput) error {
 			itv := reflect.New(it)
 			itve := reflect.Indirect(itv)
-			r.unmarshalField(itve, j)
+			if e := r.unmarshalField(itve, j, it); e != nil {
+				return e
+			}
 			ivs = append(ivs, itve)
-		})
+
+			return nil
+		}); e != nil {
+
+			return e
+		}
+
 		l := len(ivs)
 		slice := reflect.MakeSlice(field.Type(), l, l)
 		for index, v := range ivs {
@@ -334,5 +400,6 @@ func init() {
 	typeParamUnit = reflection.StructType(content.ParamUint64(42))
 	typeParamInt = reflection.StructType(content.ParamInt(42))
 	typeRequest = reflection.StructType(content.Request{})
+	typeJsonRequest = reflection.StructType(content.JsonRequest{})
 	cs = cacheStruct{cache: map[interface{}]bool{}, mu: sync.RWMutex{}}
 }
